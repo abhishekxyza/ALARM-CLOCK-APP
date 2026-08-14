@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AeroAlarm — Elegant Alarm Clock</title>
+  <!-- Google Fonts: Outfit for display, Inter for body/ui -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="logo-icon">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+        </svg>
+        <h1>AeroAlarm</h1>
+      </div>
+      <div class="header-actions">
+        <button id="theme-toggle" class="icon-btn" aria-label="Toggle Theme">
+          <!-- Moon Icon (Dark Mode Active) -->
+          <svg class="theme-icon moon-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" />
+          </svg>
+          <!-- Sun Icon (Light Mode Active) -->
+          <svg class="theme-icon sun-icon hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m0 13.5V21M4.95 4.95l1.59 1.59m10.91 10.91l1.59 1.59M3 12h2.25m13.5 0H21M6.54 17.46l-1.59 1.59m10.91-10.91l1.59-1.59M12 7.5a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9Z" />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Clock & Calendar Dashboard -->
+    <main class="dashboard">
+      <section class="clock-display-card">
+        <div class="date-container" id="current-date">Saturday, August 15, 2026</div>
+        <div class="time-container">
+          <span id="current-time">02:12:00</span>
+          <span id="time-ampm">AM</span>
+        </div>
+      </section>
+
+      <!-- Alarms List Header -->
+      <section class="alarms-header">
+        <h2>Your Alarms</h2>
+        <button id="add-alarm-btn" class="btn btn-primary">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="btn-icon">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+          Add Alarm
+        </button>
+      </section>
+
+      <!-- Alarms List Container -->
+      <section class="alarms-grid" id="alarms-list">
+        <!-- Empty state placeholder -->
+        <div class="empty-state" id="empty-state">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="empty-icon">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+          </svg>
+          <p>No alarms scheduled. Press the button above to set your first alarm!</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Add/Edit Alarm Modal Overlay -->
+  <div class="modal-overlay hidden" id="alarm-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modal-title">New Alarm</h3>
+        <button id="modal-close" class="close-btn" aria-label="Close Modal">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <form id="alarm-form">
+        <!-- Custom Time Picker Inputs -->
+        <div class="time-picker-row">
+          <div class="picker-group">
+            <label for="alarm-hour">Hour</label>
+            <select id="alarm-hour" required>
+              <option value="01">01</option>
+              <option value="02">02</option>
+              <option value="03">03</option>
+              <option value="04">04</option>
+              <option value="05">05</option>
+              <option value="06">06</option>
+              <option value="07">07</option>
+              <option value="08">08</option>
+              <option value="09">09</option>
+              <option value="10">10</option>
+              <option value="11">11</option>
+              <option value="12">12</option>
+            </select>
+          </div>
+          <div class="picker-separator">:</div>
+          <div class="picker-group">
+            <label for="alarm-minute">Minute</label>
+            <select id="alarm-minute" required>
+              <!-- Populated dynamically via JS -->
+            </select>
+          </div>
+          <div class="picker-separator"> </div>
+          <div class="picker-group">
+            <label for="alarm-ampm">AM/PM</label>
+            <select id="alarm-ampm" required>
+              <option value="AM">AM</option>
+              <option value="PM">PM</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Alarm Label -->
+        <div class="form-group">
+          <label for="alarm-label">Label</label>
+          <input type="text" id="alarm-label" placeholder="Wake Up!" maxlength="20">
+        </div>
+
+        <!-- Tone Selector -->
+        <div class="form-group">
+          <label for="alarm-tone">Alarm Tone</label>
+          <div class="tone-selector-container">
+            <select id="alarm-tone">
+              <option value="classic">Classic Beep</option>
+              <option value="digital">Digital Retro</option>
+              <option value="chime">Calm Chimes</option>
+              <option value="pulse">Sci-Fi Pulse</option>
+            </select>
+            <button type="button" id="preview-tone-btn" class="btn btn-secondary icon-btn-only" aria-label="Preview Sound">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="play-icon">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" />
+              </svg>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="stop-icon hidden">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 7.5A2.25 2.25 0 0 1 7.5 5.25h9a2.25 2.25 0 0 1 2.25 2.25v9a2.25 2.25 0 0 1-2.25 2.25h-9a2.25 2.25 0 0 1-2.25-2.25v-9Z" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Day Selection Repeat -->
+        <div class="form-group">
+          <label>Repeat Days</label>
+          <div class="days-picker">
+            <label class="day-checkbox">
+              <input type="checkbox" name="days" value="0">
+              <span class="day-bubble">S</span>
+            </label>
+            <label class="day-checkbox">
+              <input type="checkbox" name="days" value="1">
+              <span class="day-bubble">M</span>
+            </label>
+            <label class="day-checkbox">
+              <input type="checkbox" name="days" value="2">
+              <span class="day-bubble">T</span>
+            </label>
+            <label class="day-checkbox">
+              <input type="checkbox" name="days" value="3">
+              <span class="day-bubble">W</span>
+            </label>
+            <label class="day-checkbox">
+              <input type="checkbox" name="days" value="4">
+              <span class="day-bubble">T</span>
+            </label>
+            <label class="day-checkbox">
+              <input type="checkbox" name="days" value="5">
+              <span class="day-bubble">F</span>
+            </label>
+            <label class="day-checkbox">
+              <input type="checkbox" name="days" value="6">
+              <span class="day-bubble">S</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" id="delete-alarm-form-btn" class="btn btn-danger hidden">Delete</button>
+          <button type="submit" class="btn btn-primary" id="save-alarm-btn">Save Alarm</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Triggered Alarm Ringing Screen Overlay -->
+  <div class="ringing-overlay hidden" id="ringing-overlay">
+    <div class="ringing-container">
+      <div class="alarm-bell-animation">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="bell-icon">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a9.04 9.04 0 0 1-2.937 1.248c-.796.16-1.59.219-2.383.176m1.118-6.083c1.942-2.122 5.062-.07 6.094 1.416m-6.094-1.416a9.07 9.07 0 0 0-4.702 3.659m11.666 4.79c-.066.082-.132.164-.2.246m-.002 0a2.39 2.39 0 0 1-3.292-.084l-2.408-2.41a2.39 2.39 0 0 1-.083-3.292m0 0a2.396 2.396 0 0 1 3.292.084l2.408 2.41a2.39 2.39 0 0 1 .084 3.292m-8.382-3.136a9.07 9.07 0 0 1 4.702-3.659m-4.702 3.659a8.966 8.966 0 0 0-1.942 5.158m9.734-7.232c-1.032-1.486-4.152-3.538-6.094-1.416m6.094 1.416a8.966 8.966 0 0 1 1.942 5.158m-1.942-5.158a8.966 8.966 0 0 0-5.158-1.942m5.158 1.942a8.966 8.966 0 0 1-5.158 1.942m0 0A8.966 8.966 0 0 1 7.5 12m4.5-8.25V3m0 0a.75.75 0 0 1 .75.75v.25M12 3a.75.75 0 0 0-.75.75v.25m0 0v2.25M12 6V3.75m0 2.25a.75.75 0 0 1-.75-.75v-.25m.75 1a.75.75 0 0 0 .75-.75v-.25" />
+        </svg>
+      </div>
+      <h2 id="ringing-title">Alarm Active</h2>
+      <p id="ringing-time">07:00 AM</p>
+      <p id="ringing-label" class="ringing-label-text">Wake Up!</p>
+      <div class="ringing-actions">
+        <button id="snooze-alarm-btn" class="btn btn-secondary btn-lg">Snooze (5m)</button>
+        <button id="dismiss-alarm-btn" class="btn btn-danger btn-lg">Dismiss</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
