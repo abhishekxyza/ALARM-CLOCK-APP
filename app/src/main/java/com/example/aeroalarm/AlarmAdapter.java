@@ -40,7 +40,7 @@ public class AlarmAdapter extends RecyclerView.Adapter<AlarmAdapter.AlarmViewHol
     public void onBindViewHolder(@NonNull AlarmViewHolder holder, int position) {
         AlarmModel alarm = alarms.get(position);
 
-        String time = String.format("%02d:%02d", alarm.getHour(), alarm.getMinute());
+        String time = String.format("%02d:%02d:%02d", alarm.getHour(), alarm.getMinute(), alarm.getSecond());
         holder.tvAlarmTime.setText(time);
         holder.tvAlarmAmPm.setText(alarm.getAmpm());
         holder.tvAlarmLabel.setText(alarm.getLabel() == null || alarm.getLabel().isEmpty() ? "Alarm" : alarm.getLabel());

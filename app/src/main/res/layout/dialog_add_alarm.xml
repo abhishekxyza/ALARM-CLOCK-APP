@@ -20,12 +20,55 @@
             android:textStyle="bold"
             android:layout_marginBottom="16dp" />
 
-        <TimePicker
-            android:id="@+id/timePicker"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:timePickerMode="spinner"
-            android:theme="@style/Theme.AppCompat.Light" />
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginBottom="16dp">
+
+            <NumberPicker
+                android:id="@+id/npHour"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:theme="@style/Theme.AppCompat.Light" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=":"
+                android:textColor="#f8fafc"
+                android:textSize="24sp"
+                android:padding="4dp" />
+
+            <NumberPicker
+                android:id="@+id/npMinute"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:theme="@style/Theme.AppCompat.Light" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=":"
+                android:textColor="#f8fafc"
+                android:textSize="24sp"
+                android:padding="4dp" />
+
+            <NumberPicker
+                android:id="@+id/npSecond"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:theme="@style/Theme.AppCompat.Light" />
+
+            <NumberPicker
+                android:id="@+id/npAmPm"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:theme="@style/Theme.AppCompat.Light" />
+
+        </LinearLayout>
 
         <TextView
             android:layout_width="wrap_content"
@@ -52,12 +95,41 @@
             android:textColor="#94a3b8"
             android:layout_marginTop="16dp" />
 
-        <Spinner
-            android:id="@+id/spinnerTone"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:backgroundTint="#f8fafc" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="8dp">
+
+            <Spinner
+                android:id="@+id/spinnerTone"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:backgroundTint="#f8fafc" />
+
+            <Button
+                android:id="@+id/btnSelectMusic"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Music"
+                android:textSize="12sp"
+                android:paddingHorizontal="8dp"
+                android:layout_marginStart="8dp"
+                android:backgroundTint="#6366f1"
+                android:textColor="#ffffff" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvSelectedMusic"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="No music selected"
+            android:textColor="#6366f1"
+            android:textSize="12sp"
+            android:layout_marginTop="4dp"
+            android:visibility="gone" />
 
         <TextView
             android:layout_width="wrap_content"

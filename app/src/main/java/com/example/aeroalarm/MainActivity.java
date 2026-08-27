@@ -1,6 +1,9 @@
 package com.example.aeroalarm;
 
+import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -10,9 +13,11 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.NumberPicker;
 import android.widget.Spinner;
 import android.widget.TextView;
-import android.widget.TimePicker;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -32,6 +37,25 @@ public class MainActivity extends AppCompatActivity {
     private List<AlarmModel> alarmList;
     private Handler clockHandler = new Handler(Looper.getMainLooper());
     private Runnable clockRunnable;
+    private String selectedMusicUriString = null;
+    private TextView tvDialogSelectedMusic;
+
+    private final ActivityResultLauncher<Intent> musicPickerLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+                    Uri uri = result.getData().getData();
+                    if (uri != null) {
+                        getContentResolver().takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                        selectedMusicUriString = uri.toString();
+                        if (tvDialogSelectedMusic != null) {
+                            tvDialogSelectedMusic.setText("Selected: " + uri.getLastPathSegment());
+                            tvDialogSelectedMusic.setVisibility(View.VISIBLE);
+                        }
+                    }
+                }
+            }
+    );
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -117,12 +141,35 @@ public class MainActivity extends AppCompatActivity {
         dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
 
         TextView tvTitle = view.findViewById(R.id.tvDialogTitle);
-        TimePicker timePicker = view.findViewById(R.id.timePicker);
+        NumberPicker npHour = view.findViewById(R.id.npHour);
+        NumberPicker npMinute = view.findViewById(R.id.npMinute);
+        NumberPicker npSecond = view.findViewById(R.id.npSecond);
+        NumberPicker npAmPm = view.findViewById(R.id.npAmPm);
+        
         EditText etLabel = view.findViewById(R.id.etLabel);
         Spinner spinnerTone = view.findViewById(R.id.spinnerTone);
+        Button btnSelectMusic = view.findViewById(R.id.btnSelectMusic);
+        tvDialogSelectedMusic = view.findViewById(R.id.tvSelectedMusic);
+        
         Button btnSave = view.findViewById(R.id.btnSave);
         Button btnCancel = view.findViewById(R.id.btnCancel);
         Button btnDelete = view.findViewById(R.id.btnDelete);
+
+        npHour.setMinValue(1);
+        npHour.setMaxValue(12);
+        npMinute.setMinValue(0);
+        npMinute.setMaxValue(59);
+        npSecond.setMinValue(0);
+        npSecond.setMaxValue(59);
+        npAmPm.setMinValue(0);
+        npAmPm.setMaxValue(1);
+        npAmPm.setDisplayedValues(new String[]{"AM", "PM"});
+
+        // Padding for single digits
+        NumberPicker.Formatter formatter = i -> String.format(Locale.US, "%02d", i);
+        npHour.setFormatter(formatter);
+        npMinute.setFormatter(formatter);
+        npSecond.setFormatter(formatter);
 
         CheckBox[] dayChecks = {
                 view.findViewById(R.id.cbSun),
@@ -139,25 +186,49 @@ public class MainActivity extends AppCompatActivity {
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerTone.setAdapter(adapter);
 
+        selectedMusicUriString = null;
+
         if (existingAlarm != null) {
             tvTitle.setText("Edit Alarm");
             btnDelete.setVisibility(View.VISIBLE);
             
-            // Handle 24h format for picker mapping
-            int h = existingAlarm.getHour();
-            if (existingAlarm.getAmpm().equals("PM") && h < 12) h += 12;
-            if (existingAlarm.getAmpm().equals("AM") && h == 12) h = 0;
+            npHour.setValue(existingAlarm.getHour());
+            npMinute.setValue(existingAlarm.getMinute());
+            npSecond.setValue(existingAlarm.getSecond());
+            npAmPm.setValue(existingAlarm.getAmpm().equals("AM") ? 0 : 1);
             
-            timePicker.setHour(h);
-            timePicker.setMinute(existingAlarm.getMinute());
             etLabel.setText(existingAlarm.getLabel());
+
+            // Select the tone in spinner
+            if (existingAlarm.getTone() != null) {
+                for (int i = 0; i < tones.length; i++) {
+                    if (tones[i].equals(existingAlarm.getTone())) {
+                        spinnerTone.setSelection(i);
+                        break;
+                    }
+                }
+            }
             
+            if (existingAlarm.getCustomMusicUri() != null) {
+                selectedMusicUriString = existingAlarm.getCustomMusicUri();
+                Uri uri = Uri.parse(selectedMusicUriString);
+                tvDialogSelectedMusic.setText("Selected: " + uri.getLastPathSegment());
+                tvDialogSelectedMusic.setVisibility(View.VISIBLE);
+            }
+
             if (existingAlarm.getDays() != null) {
                 for (int day : existingAlarm.getDays()) {
                     if (day >= 0 && day < 7) dayChecks[day].setChecked(true);
                 }
             }
         }
+
+        btnSelectMusic.setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            intent.setType("audio/*");
+            musicPickerLauncher.launch(intent);
+        });
 
         btnCancel.setOnClickListener(v -> dialog.dismiss());
 
@@ -171,11 +242,11 @@ public class MainActivity extends AppCompatActivity {
         });
 
         btnSave.setOnClickListener(v -> {
-            int h24 = timePicker.getHour();
-            int m = timePicker.getMinute();
-            int h12 = h24 % 12;
-            h12 = h12 == 0 ? 12 : h12;
-            String ampm = h24 >= 12 ? "PM" : "AM";
+            int h = npHour.getValue();
+            int m = npMinute.getValue();
+            int s = npSecond.getValue();
+            String ampm = npAmPm.getValue() == 0 ? "AM" : "PM";
+            
             String label = etLabel.getText().toString().trim();
             String tone = spinnerTone.getSelectedItem().toString();
 
@@ -190,11 +261,13 @@ public class MainActivity extends AppCompatActivity {
                 alarmList.add(alarm);
             }
 
-            alarm.setHour(h12);
+            alarm.setHour(h);
             alarm.setMinute(m);
+            alarm.setSecond(s);
             alarm.setAmpm(ampm);
             alarm.setLabel(label);
             alarm.setTone(tone);
+            alarm.setCustomMusicUri(selectedMusicUriString);
             alarm.setDays(days);
             alarm.setActive(true);
 
