@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="#1e293b"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Oshi Character Settings"
+        android:textColor="#f8fafc"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Character Image URL"
+        android:textColor="#94a3b8" />
+
+    <EditText
+        android:id="@+id/etOshiUrl"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="https://example.com/character.jpg"
+        android:textColor="#f8fafc"
+        android:textColorHint="#64748b"
+        android:backgroundTint="#6366f1"
+        android:inputType="textUri" />
+
+    <CheckBox
+        android:id="@+id/cbLockOshi"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Lock Oshi (Skip random API)"
+        android:textColor="#f8fafc"
+        android:buttonTint="#6366f1" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="24dp"
+        android:gravity="end">
+
+        <Button
+            android:id="@+id/btnCancelOshi"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cancel"
+            android:textColor="#f8fafc"
+            android:backgroundTint="@android:color/transparent"
+            style="?android:attr/borderlessButtonStyle" />
+
+        <Button
+            android:id="@+id/btnSaveOshi"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Save"
+            android:textColor="#ffffff"
+            android:backgroundTint="#6366f1" />
+    </LinearLayout>
+
+</LinearLayout>

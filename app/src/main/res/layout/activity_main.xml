@@ -26,6 +26,22 @@
             android:textSize="24sp"
             android:textStyle="bold" />
 
+        <ImageButton
+            android:id="@+id/btnOshiSettings"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_menu_gallery"
+            app:tint="#f8fafc" />
+
+        <ImageButton
+            android:id="@+id/btnBarcodeSettings"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_menu_camera"
+            app:tint="#f8fafc" />
+
     </LinearLayout>
 
     <!-- Clock Display Card -->

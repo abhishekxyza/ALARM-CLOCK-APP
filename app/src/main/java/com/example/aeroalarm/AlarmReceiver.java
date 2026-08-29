@@ -3,13 +3,17 @@ package com.example.aeroalarm;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.util.Log;
 import java.util.Calendar;
 import java.util.List;
 
 public class AlarmReceiver extends BroadcastReceiver {
+    private static final String TAG = "AlarmReceiver";
+
     @Override
     public void onReceive(Context context, Intent intent) {
         long alarmId = intent.getLongExtra("ALARM_ID", -1);
+        Log.d(TAG, "Broadcast received for alarm ID: " + alarmId);
         if (alarmId == -1) return;
 
         List<AlarmModel> alarms = StorageHelper.getAlarms(context);
@@ -34,10 +38,13 @@ public class AlarmReceiver extends BroadcastReceiver {
         }
 
         if (shouldRing) {
-            Intent ringingIntent = new Intent(context, RingingActivity.class);
-            ringingIntent.putExtra("ALARM_ID", alarmId);
-            ringingIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-            context.startActivity(ringingIntent);
+            Intent serviceIntent = new Intent(context, AlarmService.class);
+            serviceIntent.putExtra("ALARM_ID", alarmId);
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                context.startForegroundService(serviceIntent);
+            } else {
+                context.startService(serviceIntent);
+            }
         }
 
         // Reschedule or deactivate

@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="#1e293b"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Barcode Task Settings"
+        android:textColor="#f8fafc"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Saved Barcode:"
+        android:textColor="#94a3b8" />
+
+    <TextView
+        android:id="@+id/tvCurrentBarcode"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="None"
+        android:textColor="#f8fafc"
+        android:textSize="16sp"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="16dp" />
+
+    <androidx.camera.view.PreviewView
+        android:id="@+id/settingsCameraPreview"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Point camera at a barcode to save it."
+        android:textColor="#94a3b8"
+        android:textSize="12sp"
+        android:layout_gravity="center" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="24dp"
+        android:gravity="end">
+
+        <Button
+            android:id="@+id/btnResetBarcode"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Reset"
+            android:textColor="#f8fafc"
+            android:backgroundTint="@android:color/transparent"
+            style="?android:attr/borderlessButtonStyle"
+            android:layout_marginEnd="8dp" />
+
+        <Button
+            android:id="@+id/btnCloseBarcodeSettings"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Done"
+            android:textColor="#ffffff"
+            android:backgroundTint="#6366f1" />
+    </LinearLayout>
+
+</LinearLayout>

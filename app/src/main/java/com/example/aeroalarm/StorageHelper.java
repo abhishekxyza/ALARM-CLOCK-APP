@@ -13,6 +13,9 @@ import java.util.List;
 public class StorageHelper {
     private static final String PREF_NAME = "AeroAlarmPrefs";
     private static final String KEY_ALARMS = "alarms";
+    private static final String KEY_OSHI_URL = "oshi_url";
+    private static final String KEY_OSHI_LOCKED = "oshi_locked";
+    private static final String KEY_SAVED_BARCODE = "saved_barcode";
 
     public static void saveAlarms(Context context, List<AlarmModel> alarms) {
         SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
@@ -33,5 +36,29 @@ public class StorageHelper {
             alarms = new ArrayList<>();
         }
         return alarms;
+    }
+
+    public static void setOshiCharacter(Context context, String url, boolean locked) {
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        prefs.edit()
+                .putString(KEY_OSHI_URL, url)
+                .putBoolean(KEY_OSHI_LOCKED, locked)
+                .apply();
+    }
+
+    public static String getOshiUrl(Context context) {
+        return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).getString(KEY_OSHI_URL, null);
+    }
+
+    public static boolean isOshiLocked(Context context) {
+        return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).getBoolean(KEY_OSHI_LOCKED, false);
+    }
+
+    public static void saveBarcode(Context context, String barcode) {
+        context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).edit().putString(KEY_SAVED_BARCODE, barcode).apply();
+    }
+
+    public static String getSavedBarcode(Context context) {
+        return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).getString(KEY_SAVED_BARCODE, null);
     }
 }
