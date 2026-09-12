@@ -40,19 +40,30 @@ public class AlarmAdapter extends RecyclerView.Adapter<AlarmAdapter.AlarmViewHol
     public void onBindViewHolder(@NonNull AlarmViewHolder holder, int position) {
         AlarmModel alarm = alarms.get(position);
 
-        String time = String.format("%02d:%02d:%02d", alarm.getHour(), alarm.getMinute(), alarm.getSecond());
+        String time = String.format(java.util.Locale.US, "%d:%02d", alarm.getHour(), alarm.getMinute());
         holder.tvAlarmTime.setText(time);
         holder.tvAlarmAmPm.setText(alarm.getAmpm());
         holder.tvAlarmLabel.setText(alarm.getLabel() == null || alarm.getLabel().isEmpty() ? "Alarm" : alarm.getLabel());
 
-        String daysStr = "ONCE";
+        String daysStr = "Once";
         if (alarm.getDays() != null && !alarm.getDays().isEmpty()) {
             if (alarm.getDays().size() == 7) {
-                daysStr = "EVERY DAY";
+                daysStr = "Every day";
             } else if (alarm.getDays().size() == 5 && !alarm.getDays().contains(0) && !alarm.getDays().contains(6)) {
-                daysStr = "WEEKDAYS";
+                daysStr = "Mon to Fri";
+            } else if (alarm.getDays().size() == 2 && alarm.getDays().contains(0) && alarm.getDays().contains(6)) {
+                daysStr = "Sun, Sat";
             } else {
-                daysStr = "CUSTOM";
+                String[] dayNames = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < alarm.getDays().size(); i++) {
+                    int dayIndex = alarm.getDays().get(i);
+                    if (dayIndex >= 0 && dayIndex < 7) {
+                        if (sb.length() > 0) sb.append(", ");
+                        sb.append(dayNames[dayIndex]);
+                    }
+                }
+                daysStr = sb.toString();
             }
         }
         holder.tvAlarmDays.setText(daysStr);

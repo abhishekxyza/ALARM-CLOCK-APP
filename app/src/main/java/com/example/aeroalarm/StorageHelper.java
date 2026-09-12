@@ -16,6 +16,7 @@ public class StorageHelper {
     private static final String KEY_OSHI_URL = "oshi_url";
     private static final String KEY_OSHI_LOCKED = "oshi_locked";
     private static final String KEY_SAVED_BARCODE = "saved_barcode";
+    private static final String KEY_WORLD_CITIES = "world_cities";
 
     public static void saveAlarms(Context context, List<AlarmModel> alarms) {
         SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
@@ -60,5 +61,29 @@ public class StorageHelper {
 
     public static String getSavedBarcode(Context context) {
         return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).getString(KEY_SAVED_BARCODE, null);
+    }
+
+    public static void saveWorldCities(Context context, List<WorldCityModel> cities) {
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        Gson gson = new Gson();
+        String json = gson.toJson(cities);
+        prefs.edit().putString(KEY_WORLD_CITIES, json).apply();
+    }
+
+    public static List<WorldCityModel> getWorldCities(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        Gson gson = new Gson();
+        String json = prefs.getString(KEY_WORLD_CITIES, null);
+        Type type = new TypeToken<ArrayList<WorldCityModel>>() {}.getType();
+        List<WorldCityModel> cities = gson.fromJson(json, type);
+        if (cities == null) {
+            cities = new ArrayList<>();
+            // Add default initial cities
+            cities.add(new WorldCityModel("Tokyo", "Japan", "Asia/Tokyo"));
+            cities.add(new WorldCityModel("London", "United Kingdom", "Europe/London"));
+            cities.add(new WorldCityModel("New York", "United States", "America/New_York"));
+            saveWorldCities(context, cities);
+        }
+        return cities;
     }
 }

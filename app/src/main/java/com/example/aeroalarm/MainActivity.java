@@ -5,6 +5,9 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -12,13 +15,17 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.NumberPicker;
+import android.widget.PopupMenu;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -39,7 +46,6 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.gms.tasks.Task;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.mlkit.vision.barcode.BarcodeScanner;
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions;
@@ -49,27 +55,72 @@ import com.google.mlkit.vision.common.InputImage;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.TimeZone;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity {
 
-    private TextView tvTime, tvAmPm, tvDate;
+    // Header & Navigation
+    private TextView tvHeaderTitle;
+    private ImageButton btnAddTop, btnMoreTop;
+    private LinearLayout tabAlarm, tabWorldClock, tabTimer, tabStopwatch;
+    private ImageView ivTabAlarm, ivTabWorldClock, ivTabTimer, ivTabStopwatch;
+    private TextView tvTabAlarm, tvTabWorldClock, tvTabTimer, tvTabStopwatch;
+    private View viewAlarm, viewWorldClock, viewTimer, viewStopwatch;
+    private int currentTab = 0; // 0: Alarm, 1: World Clock, 2: Timer, 3: Stopwatch
+
+    // Alarm Tab
     private RecyclerView recyclerViewAlarms;
     private View emptyState;
     private AlarmAdapter alarmAdapter;
     private List<AlarmModel> alarmList;
-    private Handler clockHandler = new Handler(Looper.getMainLooper());
-    private Runnable clockRunnable;
     private String selectedMusicUriString = null;
     private TextView tvDialogSelectedMusic;
+
+    // World Clock Tab
+    private TextView tvLocalTime, tvLocalAmPm, tvLocalDate, tvLocalCityName;
+    private RecyclerView rvWorldClock;
+    private WorldClockAdapter worldClockAdapter;
+    private List<WorldCityModel> worldCityList;
+
+    // Timer Tab
+    private NumberPicker npTimerHour, npTimerMinute, npTimerSecond;
+    private TextView tvTimerCountdown;
+    private LinearLayout timerInputLayout, timerPresetsLayout;
+    private Button btnTimerStartPause, btnTimerReset;
+    private Button btnTimer1m, btnTimer5m, btnTimer10m;
+    private Handler timerHandler = new Handler(Looper.getMainLooper());
+    private Runnable timerRunnable;
+    private long timerTotalTimeMs = 0;
+    private long timerRemainingTimeMs = 0;
+    private boolean isTimerRunning = false;
+
+    // Stopwatch Tab
+    private TextView tvStopwatchDisplay;
+    private Button btnStopwatchStartPause, btnStopwatchLapReset;
+    private RecyclerView rvStopwatchLaps;
+    private StopwatchLapAdapter stopwatchLapAdapter;
+    private List<StopwatchLapAdapter.LapItem> lapList = new ArrayList<>();
+    private Handler stopwatchHandler = new Handler(Looper.getMainLooper());
+    private Runnable stopwatchRunnable;
+    private long stopwatchStartTimeMs = 0;
+    private long stopwatchElapsedTimeMs = 0;
+    private long lastLapTimeMs = 0;
+    private boolean isStopwatchRunning = false;
+
+    // Clock Handler
+    private Handler clockHandler = new Handler(Looper.getMainLooper());
+    private Runnable clockRunnable;
+
+    // Camera Executor
     private ExecutorService cameraExecutor;
 
+    // Activity Result Launchers
     private final ActivityResultLauncher<Intent> musicPickerLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
@@ -112,33 +163,74 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        tvTime = findViewById(R.id.tvTime);
-        tvAmPm = findViewById(R.id.tvAmPm);
-        tvDate = findViewById(R.id.tvDate);
-        recyclerViewAlarms = findViewById(R.id.recyclerViewAlarms);
-        emptyState = findViewById(R.id.emptyState);
-        FloatingActionButton fabAdd = findViewById(R.id.fabAddAlarm);
-        ImageButton btnOshiSettings = findViewById(R.id.btnOshiSettings);
-        ImageButton btnBarcodeSettings = findViewById(R.id.btnBarcodeSettings);
-
+        initViews();
         requestNotificationPermission();
 
-        alarmList = StorageHelper.getAlarms(this);
-        setupRecyclerView();
-        updateEmptyState();
-
-        fabAdd.setOnClickListener(v -> showAlarmDialog(null));
-        btnOshiSettings.setOnClickListener(v -> showOshiSettingsDialog());
-        btnBarcodeSettings.setOnClickListener(v -> {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-                showBarcodeSettingsDialog();
-            } else {
-                cameraPermissionLauncher.launch(Manifest.permission.CAMERA);
-            }
-        });
+        setupAlarmTab();
+        setupWorldClockTab();
+        setupTimerTab();
+        setupStopwatchTab();
+        setupNavigationAndHeader();
 
         cameraExecutor = Executors.newSingleThreadExecutor();
         startClock();
+    }
+
+    private void initViews() {
+        // Header & Nav
+        tvHeaderTitle = findViewById(R.id.tvHeaderTitle);
+        btnAddTop = findViewById(R.id.btnAddTop);
+        btnMoreTop = findViewById(R.id.btnMoreTop);
+
+        tabAlarm = findViewById(R.id.tabAlarm);
+        tabWorldClock = findViewById(R.id.tabWorldClock);
+        tabTimer = findViewById(R.id.tabTimer);
+        tabStopwatch = findViewById(R.id.tabStopwatch);
+
+        ivTabAlarm = findViewById(R.id.ivTabAlarm);
+        ivTabWorldClock = findViewById(R.id.ivTabWorldClock);
+        ivTabTimer = findViewById(R.id.ivTabTimer);
+        ivTabStopwatch = findViewById(R.id.ivTabStopwatch);
+
+        tvTabAlarm = findViewById(R.id.tvTabAlarm);
+        tvTabWorldClock = findViewById(R.id.tvTabWorldClock);
+        tvTabTimer = findViewById(R.id.tvTabTimer);
+        tvTabStopwatch = findViewById(R.id.tvTabStopwatch);
+
+        viewAlarm = findViewById(R.id.viewAlarm);
+        viewWorldClock = findViewById(R.id.viewWorldClock);
+        viewTimer = findViewById(R.id.viewTimer);
+        viewStopwatch = findViewById(R.id.viewStopwatch);
+
+        // Alarm
+        recyclerViewAlarms = findViewById(R.id.recyclerViewAlarms);
+        emptyState = findViewById(R.id.emptyState);
+
+        // World Clock
+        tvLocalCityName = findViewById(R.id.tvLocalCityName);
+        tvLocalTime = findViewById(R.id.tvLocalTime);
+        tvLocalAmPm = findViewById(R.id.tvLocalAmPm);
+        tvLocalDate = findViewById(R.id.tvLocalDate);
+        rvWorldClock = findViewById(R.id.rvWorldClock);
+
+        // Timer
+        npTimerHour = findViewById(R.id.npTimerHour);
+        npTimerMinute = findViewById(R.id.npTimerMinute);
+        npTimerSecond = findViewById(R.id.npTimerSecond);
+        tvTimerCountdown = findViewById(R.id.tvTimerCountdown);
+        timerInputLayout = findViewById(R.id.timerInputLayout);
+        timerPresetsLayout = findViewById(R.id.timerPresetsLayout);
+        btnTimerStartPause = findViewById(R.id.btnTimerStartPause);
+        btnTimerReset = findViewById(R.id.btnTimerReset);
+        btnTimer1m = findViewById(R.id.btnTimer1m);
+        btnTimer5m = findViewById(R.id.btnTimer5m);
+        btnTimer10m = findViewById(R.id.btnTimer10m);
+
+        // Stopwatch
+        tvStopwatchDisplay = findViewById(R.id.tvStopwatchDisplay);
+        btnStopwatchStartPause = findViewById(R.id.btnStopwatchStartPause);
+        btnStopwatchLapReset = findViewById(R.id.btnStopwatchLapReset);
+        rvStopwatchLaps = findViewById(R.id.rvStopwatchLaps);
     }
 
     private void requestNotificationPermission() {
@@ -149,7 +241,126 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void setupRecyclerView() {
+    private void setupNavigationAndHeader() {
+        tabAlarm.setOnClickListener(v -> switchTab(0));
+        tabWorldClock.setOnClickListener(v -> switchTab(1));
+        tabTimer.setOnClickListener(v -> switchTab(2));
+        tabStopwatch.setOnClickListener(v -> switchTab(3));
+
+        btnAddTop.setOnClickListener(v -> {
+            if (currentTab == 0) {
+                showAlarmDialog(null);
+            } else if (currentTab == 1) {
+                showAddCityDialog();
+            } else if (currentTab == 2) {
+                // Reset or focus timer
+                resetTimer();
+            } else if (currentTab == 3) {
+                resetStopwatch();
+            }
+        });
+
+        btnMoreTop.setOnClickListener(v -> showPopupMenu(v));
+    }
+
+    private void showPopupMenu(View anchor) {
+        PopupMenu popup = new PopupMenu(this, anchor);
+        popup.getMenu().add("🎨 Anime Oshi Settings");
+        popup.getMenu().add("📷 Barcode Task Settings");
+        popup.getMenu().add("📊 Sleep Stats");
+
+        popup.setOnMenuItemClickListener(item -> {
+            String title = item.getTitle().toString();
+            if (title.contains("Anime Oshi")) {
+                showOshiSettingsDialog();
+                return true;
+            } else if (title.contains("Barcode")) {
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                    showBarcodeSettingsDialog();
+                } else {
+                    cameraPermissionLauncher.launch(Manifest.permission.CAMERA);
+                }
+                return true;
+            } else if (title.contains("Sleep Stats")) {
+                showSleepStatsDialog();
+                return true;
+            }
+            return false;
+        });
+
+        popup.show();
+    }
+
+    private void switchTab(int tabIndex) {
+        currentTab = tabIndex;
+
+        // Reset tab styling
+        resetTabStyles();
+
+        // Hide all views
+        viewAlarm.setVisibility(View.GONE);
+        viewWorldClock.setVisibility(View.GONE);
+        viewTimer.setVisibility(View.GONE);
+        viewStopwatch.setVisibility(View.GONE);
+
+        int activeColor = Color.parseColor("#FF9500");
+        int inactiveColor = Color.parseColor("#9E9E9E");
+
+        switch (tabIndex) {
+            case 0: // Alarm
+                tvHeaderTitle.setText("Alarm");
+                viewAlarm.setVisibility(View.VISIBLE);
+                tabAlarm.setBackgroundResource(R.drawable.bg_tab_active_pill);
+                ivTabAlarm.setColorFilter(activeColor);
+                tvTabAlarm.setTextColor(activeColor);
+                break;
+            case 1: // World Clock
+                tvHeaderTitle.setText("World Clock");
+                viewWorldClock.setVisibility(View.VISIBLE);
+                tabWorldClock.setBackgroundResource(R.drawable.bg_tab_active_pill);
+                ivTabWorldClock.setColorFilter(activeColor);
+                tvTabWorldClock.setTextColor(activeColor);
+                updateWorldClockDisplay();
+                break;
+            case 2: // Timer
+                tvHeaderTitle.setText("Timer");
+                viewTimer.setVisibility(View.VISIBLE);
+                tabTimer.setBackgroundResource(R.drawable.bg_tab_active_pill);
+                ivTabTimer.setColorFilter(activeColor);
+                tvTabTimer.setTextColor(activeColor);
+                break;
+            case 3: // Stopwatch
+                tvHeaderTitle.setText("Stopwatch");
+                viewStopwatch.setVisibility(View.VISIBLE);
+                tabStopwatch.setBackgroundResource(R.drawable.bg_tab_active_pill);
+                ivTabStopwatch.setColorFilter(activeColor);
+                tvTabStopwatch.setTextColor(activeColor);
+                break;
+        }
+    }
+
+    private void resetTabStyles() {
+        int inactiveColor = Color.parseColor("#9E9E9E");
+
+        tabAlarm.setBackgroundResource(0);
+        tabWorldClock.setBackgroundResource(0);
+        tabTimer.setBackgroundResource(0);
+        tabStopwatch.setBackgroundResource(0);
+
+        ivTabAlarm.setColorFilter(inactiveColor);
+        ivTabWorldClock.setColorFilter(inactiveColor);
+        ivTabTimer.setColorFilter(inactiveColor);
+        ivTabStopwatch.setColorFilter(inactiveColor);
+
+        tvTabAlarm.setTextColor(inactiveColor);
+        tvTabWorldClock.setTextColor(inactiveColor);
+        tvTabTimer.setTextColor(inactiveColor);
+        tvTabStopwatch.setTextColor(inactiveColor);
+    }
+
+    // ================= ALARM TAB =================
+    private void setupAlarmTab() {
+        alarmList = StorageHelper.getAlarms(this);
         alarmAdapter = new AlarmAdapter(alarmList, new AlarmAdapter.OnAlarmClickListener() {
             @Override
             public void onAlarmClick(AlarmModel alarm) {
@@ -169,6 +380,7 @@ public class MainActivity extends AppCompatActivity {
         });
         recyclerViewAlarms.setLayoutManager(new LinearLayoutManager(this));
         recyclerViewAlarms.setAdapter(alarmAdapter);
+        updateEmptyState();
     }
 
     private void updateEmptyState() {
@@ -181,26 +393,315 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void startClock() {
-        clockRunnable = new Runnable() {
+    // ================= WORLD CLOCK TAB =================
+    private void setupWorldClockTab() {
+        worldCityList = StorageHelper.getWorldCities(this);
+        worldClockAdapter = new WorldClockAdapter(worldCityList, new WorldClockAdapter.OnCityClickListener() {
             @Override
-            public void run() {
-                updateTime();
-                clockHandler.postDelayed(this, 1000);
+            public void onCityClick(WorldCityModel city) {
             }
-        };
-        clockHandler.post(clockRunnable);
+
+            @Override
+            public void onCityDelete(WorldCityModel city) {
+                worldCityList.remove(city);
+                StorageHelper.saveWorldCities(MainActivity.this, worldCityList);
+                worldClockAdapter.updateData(worldCityList);
+            }
+        });
+        rvWorldClock.setLayoutManager(new LinearLayoutManager(this));
+        rvWorldClock.setAdapter(worldClockAdapter);
     }
 
-    private void updateTime() {
+    private void updateWorldClockDisplay() {
         Date now = new Date();
         SimpleDateFormat timeFormat = new SimpleDateFormat("hh:mm:ss", Locale.US);
         SimpleDateFormat ampmFormat = new SimpleDateFormat("a", Locale.US);
-        SimpleDateFormat dateFormat = new SimpleDateFormat("EEEE, MMMM dd, yyyy", Locale.US);
+        SimpleDateFormat dateFormat = new SimpleDateFormat("EEEE, MMMM dd", Locale.US);
 
-        tvTime.setText(timeFormat.format(now));
-        tvAmPm.setText(ampmFormat.format(now));
-        tvDate.setText(dateFormat.format(now));
+        tvLocalTime.setText(timeFormat.format(now));
+        tvLocalAmPm.setText(ampmFormat.format(now));
+        tvLocalDate.setText(dateFormat.format(now));
+
+        String localCity = TimeZone.getDefault().getDisplayName(false, TimeZone.SHORT);
+        tvLocalCityName.setText("Local Time (" + localCity + ")");
+
+        if (worldClockAdapter != null) {
+            worldClockAdapter.notifyDataSetChanged();
+        }
+    }
+
+    private void showAddCityDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert);
+        View view = LayoutInflater.from(this).inflate(R.layout.dialog_add_city, null);
+        builder.setView(view);
+
+        AlertDialog dialog = builder.create();
+        dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+
+        EditText etSearchCity = view.findViewById(R.id.etSearchCity);
+        RecyclerView rvCityList = view.findViewById(R.id.rvCityList);
+        Button btnClose = view.findViewById(R.id.btnCloseCityDialog);
+
+        List<WorldCityModel> availableCities = getPresetCities();
+        WorldClockAdapter availableAdapter = new WorldClockAdapter(availableCities, new WorldClockAdapter.OnCityClickListener() {
+            @Override
+            public void onCityClick(WorldCityModel city) {
+                boolean exists = false;
+                for (WorldCityModel c : worldCityList) {
+                    if (c.getCityName().equalsIgnoreCase(city.getCityName())) {
+                        exists = true;
+                        break;
+                    }
+                }
+                if (!exists) {
+                    worldCityList.add(city);
+                    StorageHelper.saveWorldCities(MainActivity.this, worldCityList);
+                    worldClockAdapter.updateData(worldCityList);
+                    Toast.makeText(MainActivity.this, "Added " + city.getCityName(), Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(MainActivity.this, city.getCityName() + " is already added", Toast.LENGTH_SHORT).show();
+                }
+                dialog.dismiss();
+            }
+
+            @Override
+            public void onCityDelete(WorldCityModel city) {}
+        });
+
+        rvCityList.setLayoutManager(new LinearLayoutManager(this));
+        rvCityList.setAdapter(availableAdapter);
+
+        btnClose.setOnClickListener(v -> dialog.dismiss());
+        dialog.show();
+    }
+
+    private List<WorldCityModel> getPresetCities() {
+        List<WorldCityModel> list = new ArrayList<>();
+        list.add(new WorldCityModel("Tokyo", "Japan", "Asia/Tokyo"));
+        list.add(new WorldCityModel("London", "United Kingdom", "Europe/London"));
+        list.add(new WorldCityModel("New York", "United States", "America/New_York"));
+        list.add(new WorldCityModel("Paris", "France", "Europe/Paris"));
+        list.add(new WorldCityModel("Sydney", "Australia", "Australia/Sydney"));
+        list.add(new WorldCityModel("Dubai", "UAE", "Asia/Dubai"));
+        list.add(new WorldCityModel("San Francisco", "United States", "America/Los_Angeles"));
+        list.add(new WorldCityModel("Singapore", "Singapore", "Asia/Singapore"));
+        list.add(new WorldCityModel("Toronto", "Canada", "America/Toronto"));
+        list.add(new WorldCityModel("Seoul", "South Korea", "Asia/Seoul"));
+        list.add(new WorldCityModel("Berlin", "Germany", "Europe/Berlin"));
+        return list;
+    }
+
+    // ================= TIMER TAB =================
+    private void setupTimerTab() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            npTimerHour.setTextColor(Color.WHITE);
+            npTimerMinute.setTextColor(Color.WHITE);
+            npTimerSecond.setTextColor(Color.WHITE);
+        }
+
+        npTimerHour.setMinValue(0);
+        npTimerHour.setMaxValue(23);
+        npTimerMinute.setMinValue(0);
+        npTimerMinute.setMaxValue(59);
+        npTimerSecond.setMinValue(0);
+        npTimerSecond.setMaxValue(59);
+
+        NumberPicker.Formatter formatter = i -> String.format(Locale.US, "%02d", i);
+        npTimerHour.setFormatter(formatter);
+        npTimerMinute.setFormatter(formatter);
+        npTimerSecond.setFormatter(formatter);
+
+        btnTimer1m.setOnClickListener(v -> addTimerMinutes(1));
+        btnTimer5m.setOnClickListener(v -> addTimerMinutes(5));
+        btnTimer10m.setOnClickListener(v -> addTimerMinutes(10));
+
+        btnTimerStartPause.setOnClickListener(v -> {
+            if (isTimerRunning) {
+                pauseTimer();
+            } else {
+                startTimer();
+            }
+        });
+
+        btnTimerReset.setOnClickListener(v -> resetTimer());
+    }
+
+    private void addTimerMinutes(int mins) {
+        int currentMins = npTimerMinute.getValue();
+        int newMins = (currentMins + mins) % 60;
+        int hoursToAdd = (currentMins + mins) / 60;
+        npTimerMinute.setValue(newMins);
+        if (hoursToAdd > 0) {
+            npTimerHour.setValue((npTimerHour.getValue() + hoursToAdd) % 24);
+        }
+    }
+
+    private void startTimer() {
+        if (timerRemainingTimeMs == 0) {
+            int h = npTimerHour.getValue();
+            int m = npTimerMinute.getValue();
+            int s = npTimerSecond.getValue();
+            timerTotalTimeMs = ((h * 3600L) + (m * 60L) + s) * 1000L;
+            timerRemainingTimeMs = timerTotalTimeMs;
+        }
+
+        if (timerRemainingTimeMs <= 0) {
+            Toast.makeText(this, "Set a time first", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        isTimerRunning = true;
+        timerInputLayout.setVisibility(View.GONE);
+        timerPresetsLayout.setVisibility(View.GONE);
+        tvTimerCountdown.setVisibility(View.VISIBLE);
+        btnTimerStartPause.setText("Pause");
+
+        timerRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (timerRemainingTimeMs > 0) {
+                    timerRemainingTimeMs -= 1000;
+                    updateTimerCountdownDisplay();
+                    timerHandler.postDelayed(this, 1000);
+                } else {
+                    onTimerFinished();
+                }
+            }
+        };
+        timerHandler.post(timerRunnable);
+    }
+
+    private void pauseTimer() {
+        isTimerRunning = false;
+        timerHandler.removeCallbacks(timerRunnable);
+        btnTimerStartPause.setText("Resume");
+    }
+
+    private void resetTimer() {
+        isTimerRunning = false;
+        timerHandler.removeCallbacks(timerRunnable);
+        timerRemainingTimeMs = 0;
+        timerTotalTimeMs = 0;
+
+        tvTimerCountdown.setVisibility(View.GONE);
+        timerInputLayout.setVisibility(View.VISIBLE);
+        timerPresetsLayout.setVisibility(View.VISIBLE);
+
+        btnTimerStartPause.setText("Start");
+    }
+
+    private void updateTimerCountdownDisplay() {
+        long seconds = (timerRemainingTimeMs / 1000) % 60;
+        long minutes = (timerRemainingTimeMs / (1000 * 60)) % 60;
+        long hours = (timerRemainingTimeMs / (1000 * 60 * 60));
+        tvTimerCountdown.setText(String.format(Locale.US, "%02d:%02d:%02d", hours, minutes, seconds));
+    }
+
+    private void onTimerFinished() {
+        resetTimer();
+        Toast.makeText(this, "Timer Finished!", Toast.LENGTH_LONG).show();
+        try {
+            Uri alert = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+            Ringtone r = RingtoneManager.getRingtone(getApplicationContext(), alert);
+            if (r != null) r.play();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    // ================= STOPWATCH TAB =================
+    private void setupStopwatchTab() {
+        stopwatchLapAdapter = new StopwatchLapAdapter(lapList);
+        rvStopwatchLaps.setLayoutManager(new LinearLayoutManager(this));
+        rvStopwatchLaps.setAdapter(stopwatchLapAdapter);
+
+        btnStopwatchStartPause.setOnClickListener(v -> {
+            if (isStopwatchRunning) {
+                pauseStopwatch();
+            } else {
+                startStopwatch();
+            }
+        });
+
+        btnStopwatchLapReset.setOnClickListener(v -> {
+            if (isStopwatchRunning) {
+                recordLap();
+            } else {
+                resetStopwatch();
+            }
+        });
+    }
+
+    private void startStopwatch() {
+        isStopwatchRunning = true;
+        stopwatchStartTimeMs = System.currentTimeMillis() - stopwatchElapsedTimeMs;
+        btnStopwatchStartPause.setText("Pause");
+        btnStopwatchLapReset.setText("Lap");
+        btnStopwatchLapReset.setEnabled(true);
+
+        stopwatchRunnable = new Runnable() {
+            @Override
+            public void run() {
+                stopwatchElapsedTimeMs = System.currentTimeMillis() - stopwatchStartTimeMs;
+                updateStopwatchDisplay(stopwatchElapsedTimeMs);
+                stopwatchHandler.postDelayed(this, 10);
+            }
+        };
+        stopwatchHandler.post(stopwatchRunnable);
+    }
+
+    private void pauseStopwatch() {
+        isStopwatchRunning = false;
+        stopwatchHandler.removeCallbacks(stopwatchRunnable);
+        btnStopwatchStartPause.setText("Resume");
+        btnStopwatchLapReset.setText("Reset");
+    }
+
+    private void resetStopwatch() {
+        isStopwatchRunning = false;
+        stopwatchHandler.removeCallbacks(stopwatchRunnable);
+        stopwatchElapsedTimeMs = 0;
+        lastLapTimeMs = 0;
+        lapList.clear();
+        stopwatchLapAdapter.updateData(lapList);
+
+        updateStopwatchDisplay(0);
+        btnStopwatchStartPause.setText("Start");
+        btnStopwatchLapReset.setText("Lap");
+        btnStopwatchLapReset.setEnabled(false);
+    }
+
+    private void recordLap() {
+        long currentTotal = stopwatchElapsedTimeMs;
+        long lapDuration = currentTotal - lastLapTimeMs;
+        lastLapTimeMs = currentTotal;
+
+        int lapNum = lapList.size() + 1;
+        lapList.add(0, new StopwatchLapAdapter.LapItem(lapNum, lapDuration, currentTotal));
+        stopwatchLapAdapter.updateData(lapList);
+    }
+
+    private void updateStopwatchDisplay(long ms) {
+        long minutes = (ms / 1000) / 60;
+        long seconds = (ms / 1000) % 60;
+        long hundredths = (ms % 1000) / 10;
+        tvStopwatchDisplay.setText(String.format(Locale.US, "%02d:%02d.%02d", minutes, seconds, hundredths));
+    }
+
+    // ================= DIALOGS =================
+    private void showSleepStatsDialog() {
+        Executors.newSingleThreadExecutor().execute(() -> {
+            AppDatabase db = AppDatabase.getInstance(MainActivity.this);
+            double avgDelayMs = db.sleepStatDao().getAverageWakeUpDelay(System.currentTimeMillis() - (7L * 24 * 3600 * 1000));
+            double avgSecs = avgDelayMs / 1000.0;
+            runOnUiThread(() -> {
+                AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this, android.R.style.Theme_DeviceDefault_Dialog_Alert);
+                builder.setTitle("📊 Sleep Analytics")
+                       .setMessage(String.format(Locale.US, "7-Day Avg Wake-Up Speed: %.1f seconds", avgSecs))
+                       .setPositiveButton("OK", (d, w) -> d.dismiss())
+                       .show();
+            });
+        });
     }
 
     private void showAlarmDialog(AlarmModel existingAlarm) {
@@ -240,6 +741,13 @@ public class MainActivity extends AppCompatActivity {
         npHour.setFormatter(formatter);
         npMinute.setFormatter(formatter);
         npSecond.setFormatter(formatter);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            npHour.setTextColor(Color.WHITE);
+            npMinute.setTextColor(Color.WHITE);
+            npSecond.setTextColor(Color.WHITE);
+            npAmPm.setTextColor(Color.WHITE);
+        }
 
         CheckBox[] dayChecks = {
                 view.findViewById(R.id.cbSun),
@@ -410,6 +918,19 @@ public class MainActivity extends AppCompatActivity {
         dialog.show();
     }
 
+    private void startClock() {
+        clockRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (currentTab == 1) {
+                    updateWorldClockDisplay();
+                }
+                clockHandler.postDelayed(this, 1000);
+            }
+        };
+        clockHandler.post(clockRunnable);
+    }
+
     private void startCamera(PreviewView previewView, OnBarcodeScannedListener listener) {
         ListenableFuture<ProcessCameraProvider> cameraProviderFuture = ProcessCameraProvider.getInstance(this);
 
@@ -469,6 +990,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         clockHandler.removeCallbacks(clockRunnable);
+        timerHandler.removeCallbacks(timerRunnable);
+        stopwatchHandler.removeCallbacks(stopwatchRunnable);
         if (cameraExecutor != null) {
             cameraExecutor.shutdown();
         }

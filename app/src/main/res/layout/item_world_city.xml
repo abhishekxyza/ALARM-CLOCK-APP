@@ -19,56 +19,59 @@
             android:layout_weight="1"
             android:orientation="vertical">
 
-            <LinearLayout
+            <TextView
+                android:id="@+id/tvCityName"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="bottom">
-
-                <TextView
-                    android:id="@+id/tvAlarmTime"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="8:00"
-                    android:textColor="#E0E0E0"
-                    android:textSize="42sp"
-                    android:fontFamily="sans-serif-light" />
-
-                <TextView
-                    android:id="@+id/tvAlarmAmPm"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="6dp"
-                    android:text="AM"
-                    android:textColor="#9E9E9E"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
+                android:text="Tokyo"
+                android:textColor="#FFFFFF"
+                android:textSize="22sp"
+                android:textStyle="bold" />
 
             <TextView
-                android:id="@+id/tvAlarmDays"
+                android:id="@+id/tvCityOffset"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Mon to Fri"
+                android:text="+3.5 hrs ahead"
                 android:textColor="#757575"
                 android:textSize="14sp"
                 android:layout_marginTop="2dp" />
-
-            <TextView
-                android:id="@+id/tvAlarmLabel"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Wake Up!"
-                android:textColor="#9E9E9E"
-                android:textSize="12sp"
-                android:visibility="gone" />
         </LinearLayout>
 
-        <androidx.appcompat.widget.SwitchCompat
-            android:id="@+id/switchAlarm"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:theme="@style/Theme.AppCompat.Light" />
+            android:orientation="horizontal"
+            android:gravity="bottom">
+
+            <TextView
+                android:id="@+id/tvCityTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="05:11"
+                android:textColor="#E0E0E0"
+                android:textSize="36sp"
+                android:fontFamily="sans-serif-light" />
+
+            <TextView
+                android:id="@+id/tvCityAmPm"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:text="PM"
+                android:textColor="#9E9E9E"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/btnDeleteCity"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="16dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_menu_delete"
+            android:visibility="gone" />
 
     </LinearLayout>
 
