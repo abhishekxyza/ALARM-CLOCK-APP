@@ -134,9 +134,70 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Repeat Days"
+            android:text="Repeat Presets"
             android:textColor="#94a3b8"
             android:layout_marginTop="16dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="8dp">
+
+            <Button
+                android:id="@+id/btnPresetMonFri"
+                android:layout_width="0dp"
+                android:layout_height="38dp"
+                android:layout_weight="1"
+                android:text="Mon-Fri"
+                android:textColor="#f8fafc"
+                android:textSize="10sp"
+                android:padding="0dp"
+                android:backgroundTint="#334155"
+                android:layout_marginEnd="4dp" />
+
+            <Button
+                android:id="@+id/btnPresetSatSun"
+                android:layout_width="0dp"
+                android:layout_height="38dp"
+                android:layout_weight="1"
+                android:text="Sat,Sun"
+                android:textColor="#f8fafc"
+                android:textSize="10sp"
+                android:padding="0dp"
+                android:backgroundTint="#334155"
+                android:layout_marginEnd="4dp" />
+
+            <Button
+                android:id="@+id/btnPresetSunday"
+                android:layout_width="0dp"
+                android:layout_height="38dp"
+                android:layout_weight="1"
+                android:text="Sunday"
+                android:textColor="#f8fafc"
+                android:textSize="10sp"
+                android:padding="0dp"
+                android:backgroundTint="#334155"
+                android:layout_marginEnd="4dp" />
+
+            <Button
+                android:id="@+id/btnPresetEveryDay"
+                android:layout_width="0dp"
+                android:layout_height="38dp"
+                android:layout_weight="1"
+                android:text="Every Day"
+                android:textColor="#f8fafc"
+                android:textSize="10sp"
+                android:padding="0dp"
+                android:backgroundTint="#334155" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Individual Days"
+            android:textColor="#94a3b8"
+            android:layout_marginTop="12dp" />
 
         <LinearLayout
             android:layout_width="match_parent"

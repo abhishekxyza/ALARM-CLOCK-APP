@@ -17,6 +17,8 @@ public class StorageHelper {
     private static final String KEY_OSHI_LOCKED = "oshi_locked";
     private static final String KEY_SAVED_BARCODE = "saved_barcode";
     private static final String KEY_WORLD_CITIES = "world_cities";
+    private static final String KEY_WALLPAPER_TYPE = "wallpaper_type";
+    private static final String KEY_WALLPAPER_URI = "wallpaper_uri";
 
     public static void saveAlarms(Context context, List<AlarmModel> alarms) {
         SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
@@ -85,5 +87,21 @@ public class StorageHelper {
             saveWorldCities(context, cities);
         }
         return cities;
+    }
+
+    public static void saveWallpaper(Context context, String type, String uri) {
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        prefs.edit()
+                .putString(KEY_WALLPAPER_TYPE, type)
+                .putString(KEY_WALLPAPER_URI, uri)
+                .apply();
+    }
+
+    public static String getWallpaperType(Context context) {
+        return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).getString(KEY_WALLPAPER_TYPE, "default_black");
+    }
+
+    public static String getWallpaperUri(Context context) {
+        return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).getString(KEY_WALLPAPER_URI, null);
     }
 }

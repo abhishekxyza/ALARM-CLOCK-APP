@@ -7,6 +7,22 @@
     android:background="#000000"
     tools:context=".MainActivity">
 
+    <!-- Background Image & Dim Overlay for Custom Wallpapers -->
+    <ImageView
+        android:id="@+id/ivMainBackground"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:visibility="gone"
+        tools:ignore="ContentDescription" />
+
+    <View
+        android:id="@+id/vMainBackgroundDim"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#80000000"
+        android:visibility="gone" />
+
     <!-- Top Action Bar Header -->
     <LinearLayout
         android:id="@+id/headerLayout"

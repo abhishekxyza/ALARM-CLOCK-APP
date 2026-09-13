@@ -34,6 +34,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.OptIn;
 import androidx.appcompat.app.AppCompatActivity;
+import com.bumptech.glide.Glide;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ExperimentalGetImage;
 import androidx.camera.core.ImageAnalysis;
@@ -68,6 +69,8 @@ public class MainActivity extends AppCompatActivity {
     // Header & Navigation
     private TextView tvHeaderTitle;
     private ImageButton btnAddTop, btnMoreTop;
+    private ImageView ivMainBackground;
+    private View vMainBackgroundDim;
     private LinearLayout tabAlarm, tabWorldClock, tabTimer, tabStopwatch;
     private ImageView ivTabAlarm, ivTabWorldClock, ivTabTimer, ivTabStopwatch;
     private TextView tvTabAlarm, tvTabWorldClock, tvTabTimer, tvTabStopwatch;
@@ -158,6 +161,32 @@ public class MainActivity extends AppCompatActivity {
             }
     );
 
+    private String selectedWallpaperTypeTemp = "default_black";
+    private String selectedWallpaperUriTemp = null;
+    private TextView tvDialogWallpaperStatusTemp = null;
+
+    private final ActivityResultLauncher<Intent> wallpaperPickerLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+                    Uri uri = result.getData().getData();
+                    if (uri != null) {
+                        try {
+                            getContentResolver().takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                        } catch (Exception e) {
+                            Log.e("MainActivity", "Persistable permission error", e);
+                        }
+                        selectedWallpaperTypeTemp = "custom_uri";
+                        selectedWallpaperUriTemp = uri.toString();
+                        if (tvDialogWallpaperStatusTemp != null) {
+                            tvDialogWallpaperStatusTemp.setText("Selected Photo: " + uri.getLastPathSegment());
+                            tvDialogWallpaperStatusTemp.setTextColor(Color.parseColor("#FF9500"));
+                        }
+                    }
+                }
+            }
+    );
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -171,6 +200,7 @@ public class MainActivity extends AppCompatActivity {
         setupTimerTab();
         setupStopwatchTab();
         setupNavigationAndHeader();
+        applyMainWallpaper();
 
         cameraExecutor = Executors.newSingleThreadExecutor();
         startClock();
@@ -181,6 +211,8 @@ public class MainActivity extends AppCompatActivity {
         tvHeaderTitle = findViewById(R.id.tvHeaderTitle);
         btnAddTop = findViewById(R.id.btnAddTop);
         btnMoreTop = findViewById(R.id.btnMoreTop);
+        ivMainBackground = findViewById(R.id.ivMainBackground);
+        vMainBackgroundDim = findViewById(R.id.vMainBackgroundDim);
 
         tabAlarm = findViewById(R.id.tabAlarm);
         tabWorldClock = findViewById(R.id.tabWorldClock);
@@ -267,6 +299,7 @@ public class MainActivity extends AppCompatActivity {
         PopupMenu popup = new PopupMenu(this, anchor);
         popup.getMenu().add("🎨 Anime Oshi Settings");
         popup.getMenu().add("📷 Barcode Task Settings");
+        popup.getMenu().add("🖼️ Wallpaper Settings");
         popup.getMenu().add("📊 Sleep Stats");
 
         popup.setOnMenuItemClickListener(item -> {
@@ -280,6 +313,9 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     cameraPermissionLauncher.launch(Manifest.permission.CAMERA);
                 }
+                return true;
+            } else if (title.contains("Wallpaper")) {
+                showWallpaperSettingsDialog();
                 return true;
             } else if (title.contains("Sleep Stats")) {
                 showSleepStatsDialog();
@@ -759,6 +795,47 @@ public class MainActivity extends AppCompatActivity {
                 view.findViewById(R.id.cbSat)
         };
 
+        Button btnPresetMonFri = view.findViewById(R.id.btnPresetMonFri);
+        Button btnPresetSatSun = view.findViewById(R.id.btnPresetSatSun);
+        Button btnPresetSunday = view.findViewById(R.id.btnPresetSunday);
+        Button btnPresetEveryDay = view.findViewById(R.id.btnPresetEveryDay);
+
+        btnPresetMonFri.setOnClickListener(v -> {
+            dayChecks[0].setChecked(false); // Sun
+            dayChecks[1].setChecked(true);  // Mon
+            dayChecks[2].setChecked(true);  // Tue
+            dayChecks[3].setChecked(true);  // Wed
+            dayChecks[4].setChecked(true);  // Thu
+            dayChecks[5].setChecked(true);  // Fri
+            dayChecks[6].setChecked(false); // Sat
+        });
+
+        btnPresetSatSun.setOnClickListener(v -> {
+            dayChecks[0].setChecked(true);  // Sun
+            dayChecks[1].setChecked(false); // Mon
+            dayChecks[2].setChecked(false); // Tue
+            dayChecks[3].setChecked(false); // Wed
+            dayChecks[4].setChecked(false); // Thu
+            dayChecks[5].setChecked(false); // Fri
+            dayChecks[6].setChecked(true);  // Sat
+        });
+
+        btnPresetSunday.setOnClickListener(v -> {
+            dayChecks[0].setChecked(true);  // Sun
+            dayChecks[1].setChecked(false); // Mon
+            dayChecks[2].setChecked(false); // Tue
+            dayChecks[3].setChecked(false); // Wed
+            dayChecks[4].setChecked(false); // Thu
+            dayChecks[5].setChecked(false); // Fri
+            dayChecks[6].setChecked(false); // Sat
+        });
+
+        btnPresetEveryDay.setOnClickListener(v -> {
+            for (CheckBox cb : dayChecks) {
+                cb.setChecked(true);
+            }
+        });
+
         String[] tones = {"Classic Beep", "Digital Retro", "Calm Chimes", "Sci-Fi Pulse"};
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, tones);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -885,6 +962,131 @@ public class MainActivity extends AppCompatActivity {
         });
 
         dialog.show();
+    }
+
+    private void applyMainWallpaper() {
+        String type = StorageHelper.getWallpaperType(this);
+        String uriStr = StorageHelper.getWallpaperUri(this);
+
+        View root = findViewById(R.id.headerLayout);
+        if (root != null && root.getParent() instanceof View) {
+            root = (View) root.getParent();
+        }
+
+        if ("custom_uri".equals(type) && uriStr != null && !uriStr.isEmpty()) {
+            if (ivMainBackground != null && vMainBackgroundDim != null) {
+                ivMainBackground.setVisibility(View.VISIBLE);
+                vMainBackgroundDim.setVisibility(View.VISIBLE);
+                try {
+                    Glide.with(this).load(Uri.parse(uriStr)).into(ivMainBackground);
+                } catch (Exception e) {
+                    Log.e("MainActivity", "Error loading background image", e);
+                }
+            }
+        } else {
+            if (ivMainBackground != null) ivMainBackground.setVisibility(View.GONE);
+            if (vMainBackgroundDim != null) vMainBackgroundDim.setVisibility(View.GONE);
+
+            int bgColor = Color.parseColor("#000000");
+            switch (type) {
+                case "preset_navy":
+                    bgColor = Color.parseColor("#0f172a");
+                    break;
+                case "preset_purple":
+                    bgColor = Color.parseColor("#1e1b4b");
+                    break;
+                case "preset_emerald":
+                    bgColor = Color.parseColor("#064e3b");
+                    break;
+            }
+
+            if (root != null) root.setBackgroundColor(bgColor);
+            getWindow().getDecorView().setBackgroundColor(bgColor);
+        }
+    }
+
+    private void showWallpaperSettingsDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert);
+        View view = LayoutInflater.from(this).inflate(R.layout.dialog_wallpaper_settings, null);
+        builder.setView(view);
+
+        AlertDialog dialog = builder.create();
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+
+        Button btnPresetBlack = view.findViewById(R.id.btnPresetBlack);
+        Button btnPresetNavy = view.findViewById(R.id.btnPresetNavy);
+        Button btnPresetPurple = view.findViewById(R.id.btnPresetPurple);
+        Button btnPresetEmerald = view.findViewById(R.id.btnPresetEmerald);
+        Button btnPickGallery = view.findViewById(R.id.btnPickGalleryWallpaper);
+        tvDialogWallpaperStatusTemp = view.findViewById(R.id.tvSelectedWallpaperStatus);
+        Button btnSave = view.findViewById(R.id.btnSaveWallpaper);
+        Button btnCancel = view.findViewById(R.id.btnCancelWallpaper);
+
+        selectedWallpaperTypeTemp = StorageHelper.getWallpaperType(this);
+        selectedWallpaperUriTemp = StorageHelper.getWallpaperUri(this);
+
+        updateWallpaperStatusText();
+
+        btnPresetBlack.setOnClickListener(v -> {
+            selectedWallpaperTypeTemp = "default_black";
+            selectedWallpaperUriTemp = null;
+            updateWallpaperStatusText();
+        });
+
+        btnPresetNavy.setOnClickListener(v -> {
+            selectedWallpaperTypeTemp = "preset_navy";
+            selectedWallpaperUriTemp = null;
+            updateWallpaperStatusText();
+        });
+
+        btnPresetPurple.setOnClickListener(v -> {
+            selectedWallpaperTypeTemp = "preset_purple";
+            selectedWallpaperUriTemp = null;
+            updateWallpaperStatusText();
+        });
+
+        btnPresetEmerald.setOnClickListener(v -> {
+            selectedWallpaperTypeTemp = "preset_emerald";
+            selectedWallpaperUriTemp = null;
+            updateWallpaperStatusText();
+        });
+
+        btnPickGallery.setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            intent.setType("image/*");
+            wallpaperPickerLauncher.launch(intent);
+        });
+
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+
+        btnSave.setOnClickListener(v -> {
+            StorageHelper.saveWallpaper(this, selectedWallpaperTypeTemp, selectedWallpaperUriTemp);
+            applyMainWallpaper();
+            Toast.makeText(this, "Wallpaper updated!", Toast.LENGTH_SHORT).show();
+            dialog.dismiss();
+        });
+
+        dialog.show();
+    }
+
+    private void updateWallpaperStatusText() {
+        if (tvDialogWallpaperStatusTemp == null) return;
+        tvDialogWallpaperStatusTemp.setTextColor(Color.parseColor("#FF9500"));
+
+        if ("custom_uri".equals(selectedWallpaperTypeTemp)) {
+            tvDialogWallpaperStatusTemp.setText("Selected: Custom Gallery Photo");
+        } else if ("preset_navy".equals(selectedWallpaperTypeTemp)) {
+            tvDialogWallpaperStatusTemp.setText("Selected: Midnight Navy");
+        } else if ("preset_purple".equals(selectedWallpaperTypeTemp)) {
+            tvDialogWallpaperStatusTemp.setText("Selected: Dark Purple");
+        } else if ("preset_emerald".equals(selectedWallpaperTypeTemp)) {
+            tvDialogWallpaperStatusTemp.setText("Selected: Dark Emerald");
+        } else {
+            tvDialogWallpaperStatusTemp.setText("Selected: Pitch Black (Default)");
+        }
     }
 
     private void showBarcodeSettingsDialog() {

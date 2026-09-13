@@ -52,7 +52,9 @@ public class AlarmAdapter extends RecyclerView.Adapter<AlarmAdapter.AlarmViewHol
             } else if (alarm.getDays().size() == 5 && !alarm.getDays().contains(0) && !alarm.getDays().contains(6)) {
                 daysStr = "Mon to Fri";
             } else if (alarm.getDays().size() == 2 && alarm.getDays().contains(0) && alarm.getDays().contains(6)) {
-                daysStr = "Sun, Sat";
+                daysStr = "Sat, Sun";
+            } else if (alarm.getDays().size() == 1 && alarm.getDays().contains(0)) {
+                daysStr = "Sunday";
             } else {
                 String[] dayNames = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
                 StringBuilder sb = new StringBuilder();

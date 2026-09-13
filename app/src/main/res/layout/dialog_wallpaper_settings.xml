@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="#1c1c1e"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Wallpaper Settings"
+        android:textColor="#FFFFFF"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="4dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Choose a dark theme or upload a custom photo"
+        android:textColor="#9E9E9E"
+        android:textSize="12sp"
+        android:layout_marginBottom="20dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Theme Presets"
+        android:textColor="#E0E0E0"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="12dp" />
+
+    <!-- Presets horizontal row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:weightSum="4"
+        android:layout_marginBottom="20dp">
+
+        <Button
+            android:id="@+id/btnPresetBlack"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:text="Black"
+            android:textColor="#FFFFFF"
+            android:textSize="11sp"
+            android:backgroundTint="#000000"
+            android:layout_marginEnd="4dp" />
+
+        <Button
+            android:id="@+id/btnPresetNavy"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:text="Navy"
+            android:textColor="#FFFFFF"
+            android:textSize="11sp"
+            android:backgroundTint="#0f172a"
+            android:layout_marginEnd="4dp" />
+
+        <Button
+            android:id="@+id/btnPresetPurple"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:text="Purple"
+            android:textColor="#FFFFFF"
+            android:textSize="11sp"
+            android:backgroundTint="#1e1b4b"
+            android:layout_marginEnd="4dp" />
+
+        <Button
+            android:id="@+id/btnPresetEmerald"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:text="Emerald"
+            android:textColor="#FFFFFF"
+            android:textSize="11sp"
+            android:backgroundTint="#064e3b" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#2c2c2e"
+        android:layout_marginBottom="20dp" />
+
+    <Button
+        android:id="@+id/btnPickGalleryWallpaper"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:text="📷 Choose Photo from Gallery"
+        android:textColor="#FFFFFF"
+        android:backgroundTint="#2c2c2e" />
+
+    <TextView
+        android:id="@+id/tvSelectedWallpaperStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Current: Default Pitch Black"
+        android:textColor="#FF9500"
+        android:textSize="12sp"
+        android:layout_marginTop="8dp"
+        android:layout_gravity="center_horizontal" />
+
+    <!-- Action Buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="end"
+        android:layout_marginTop="24dp">
+
+        <Button
+            android:id="@+id/btnCancelWallpaper"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cancel"
+            android:textColor="#9E9E9E"
+            android:backgroundTint="@android:color/transparent"
+            style="?android:attr/borderlessButtonStyle"
+            android:layout_marginEnd="8dp" />
+
+        <Button
+            android:id="@+id/btnSaveWallpaper"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Save"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#FF9500" />
+    </LinearLayout>
+
+</LinearLayout>
