@@ -94,9 +94,11 @@ public class MainActivity extends AppCompatActivity {
     // Timer Tab
     private NumberPicker npTimerHour, npTimerMinute, npTimerSecond;
     private TextView tvTimerCountdown;
-    private LinearLayout timerInputLayout, timerPresetsLayout;
-    private Button btnTimerStartPause, btnTimerReset;
-    private Button btnTimer1m, btnTimer5m, btnTimer10m;
+    private LinearLayout timerInputLayout;
+    private ImageButton btnTimerCancel, btnTimerPlayPause, btnTimerSound;
+    private RecyclerView rvPresetTimers;
+    private PresetTimerAdapter presetTimerAdapter;
+    private List<TimerModel> presetTimerList;
     private Handler timerHandler = new Handler(Looper.getMainLooper());
     private Runnable timerRunnable;
     private long timerTotalTimeMs = 0;
@@ -251,12 +253,10 @@ public class MainActivity extends AppCompatActivity {
         npTimerSecond = findViewById(R.id.npTimerSecond);
         tvTimerCountdown = findViewById(R.id.tvTimerCountdown);
         timerInputLayout = findViewById(R.id.timerInputLayout);
-        timerPresetsLayout = findViewById(R.id.timerPresetsLayout);
-        btnTimerStartPause = findViewById(R.id.btnTimerStartPause);
-        btnTimerReset = findViewById(R.id.btnTimerReset);
-        btnTimer1m = findViewById(R.id.btnTimer1m);
-        btnTimer5m = findViewById(R.id.btnTimer5m);
-        btnTimer10m = findViewById(R.id.btnTimer10m);
+        rvPresetTimers = findViewById(R.id.rvPresetTimers);
+        btnTimerCancel = findViewById(R.id.btnTimerCancel);
+        btnTimerPlayPause = findViewById(R.id.btnTimerPlayPause);
+        btnTimerSound = findViewById(R.id.btnTimerSound);
 
         // Stopwatch
         tvStopwatchDisplay = findViewById(R.id.tvStopwatchDisplay);
@@ -285,8 +285,7 @@ public class MainActivity extends AppCompatActivity {
             } else if (currentTab == 1) {
                 showAddCityDialog();
             } else if (currentTab == 2) {
-                // Reset or focus timer
-                resetTimer();
+                showAddTimerDialog();
             } else if (currentTab == 3) {
                 resetStopwatch();
             }
@@ -300,6 +299,7 @@ public class MainActivity extends AppCompatActivity {
         popup.getMenu().add("🎨 Anime Oshi Settings");
         popup.getMenu().add("📷 Barcode Task Settings");
         popup.getMenu().add("🖼️ Wallpaper Settings");
+        popup.getMenu().add("⚙️ Settings");
         popup.getMenu().add("📊 Sleep Stats");
 
         popup.setOnMenuItemClickListener(item -> {
@@ -316,6 +316,9 @@ public class MainActivity extends AppCompatActivity {
                 return true;
             } else if (title.contains("Wallpaper")) {
                 showWallpaperSettingsDialog();
+                return true;
+            } else if (title.contains("Settings")) {
+                showSettingsDialog();
                 return true;
             } else if (title.contains("Sleep Stats")) {
                 showSleepStatsDialog();
@@ -547,11 +550,23 @@ public class MainActivity extends AppCompatActivity {
         npTimerMinute.setFormatter(formatter);
         npTimerSecond.setFormatter(formatter);
 
-        btnTimer1m.setOnClickListener(v -> addTimerMinutes(1));
-        btnTimer5m.setOnClickListener(v -> addTimerMinutes(5));
-        btnTimer10m.setOnClickListener(v -> addTimerMinutes(10));
+        // Preset Timers RecyclerView
+        presetTimerList = StorageHelper.getPresetTimers(this);
+        presetTimerAdapter = new PresetTimerAdapter(presetTimerList, timer -> {
+            long secs = timer.getDurationSeconds();
+            int h = (int) (secs / 3600);
+            int m = (int) ((secs % 3600) / 60);
+            int s = (int) (secs % 60);
+            npTimerHour.setValue(h);
+            npTimerMinute.setValue(m);
+            npTimerSecond.setValue(s);
+            Toast.makeText(this, "Loaded " + timer.getName(), Toast.LENGTH_SHORT).show();
+        });
+        rvPresetTimers.setLayoutManager(new LinearLayoutManager(this));
+        rvPresetTimers.setAdapter(presetTimerAdapter);
 
-        btnTimerStartPause.setOnClickListener(v -> {
+        // Circular Action Buttons (Image 1)
+        btnTimerPlayPause.setOnClickListener(v -> {
             if (isTimerRunning) {
                 pauseTimer();
             } else {
@@ -559,17 +574,11 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        btnTimerReset.setOnClickListener(v -> resetTimer());
-    }
+        btnTimerCancel.setOnClickListener(v -> resetTimer());
 
-    private void addTimerMinutes(int mins) {
-        int currentMins = npTimerMinute.getValue();
-        int newMins = (currentMins + mins) % 60;
-        int hoursToAdd = (currentMins + mins) / 60;
-        npTimerMinute.setValue(newMins);
-        if (hoursToAdd > 0) {
-            npTimerHour.setValue((npTimerHour.getValue() + hoursToAdd) % 24);
-        }
+        btnTimerSound.setOnClickListener(v -> {
+            Toast.makeText(this, "Timer Sound: Default Tone", Toast.LENGTH_SHORT).show();
+        });
     }
 
     private void startTimer() {
@@ -588,9 +597,8 @@ public class MainActivity extends AppCompatActivity {
 
         isTimerRunning = true;
         timerInputLayout.setVisibility(View.GONE);
-        timerPresetsLayout.setVisibility(View.GONE);
         tvTimerCountdown.setVisibility(View.VISIBLE);
-        btnTimerStartPause.setText("Pause");
+        btnTimerPlayPause.setImageResource(R.drawable.ic_close);
 
         timerRunnable = new Runnable() {
             @Override
@@ -610,7 +618,7 @@ public class MainActivity extends AppCompatActivity {
     private void pauseTimer() {
         isTimerRunning = false;
         timerHandler.removeCallbacks(timerRunnable);
-        btnTimerStartPause.setText("Resume");
+        btnTimerPlayPause.setImageResource(R.drawable.ic_play_arrow);
     }
 
     private void resetTimer() {
@@ -621,9 +629,245 @@ public class MainActivity extends AppCompatActivity {
 
         tvTimerCountdown.setVisibility(View.GONE);
         timerInputLayout.setVisibility(View.VISIBLE);
-        timerPresetsLayout.setVisibility(View.VISIBLE);
+        btnTimerPlayPause.setImageResource(R.drawable.ic_play_arrow);
+    }
 
-        btnTimerStartPause.setText("Start");
+    private void showAddTimerDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert);
+        View view = LayoutInflater.from(this).inflate(R.layout.dialog_add_timer, null);
+        builder.setView(view);
+
+        AlertDialog dialog = builder.create();
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+
+        ImageButton btnClose = view.findViewById(R.id.btnCloseAddTimer);
+        NumberPicker npHour = view.findViewById(R.id.npAddTimerHour);
+        NumberPicker npMinute = view.findViewById(R.id.npAddTimerMinute);
+        NumberPicker npSecond = view.findViewById(R.id.npAddTimerSecond);
+
+        EditText etTimerName = view.findViewById(R.id.etTimerName);
+        androidx.appcompat.widget.SwitchCompat swShowOnLockScreen = view.findViewById(R.id.swShowOnLockScreen);
+        Button btnSave = view.findViewById(R.id.btnSaveAddTimer);
+
+        npHour.setMinValue(0);
+        npHour.setMaxValue(23);
+        npMinute.setMinValue(0);
+        npMinute.setMaxValue(59);
+        npSecond.setMinValue(0);
+        npSecond.setMaxValue(59);
+
+        NumberPicker.Formatter formatter = i -> String.format(Locale.US, "%02d", i);
+        npHour.setFormatter(formatter);
+        npMinute.setFormatter(formatter);
+        npSecond.setFormatter(formatter);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            npHour.setTextColor(Color.WHITE);
+            npMinute.setTextColor(Color.WHITE);
+            npSecond.setTextColor(Color.WHITE);
+        }
+
+        // Set default to 00h 31m 00s like Image 2
+        npHour.setValue(0);
+        npMinute.setValue(31);
+        npSecond.setValue(0);
+
+        btnClose.setOnClickListener(v -> dialog.dismiss());
+
+        btnSave.setOnClickListener(v -> {
+            int h = npHour.getValue();
+            int m = npMinute.getValue();
+            int s = npSecond.getValue();
+            long totalSecs = (h * 3600L) + (m * 60L) + s;
+
+            if (totalSecs <= 0) {
+                Toast.makeText(this, "Set a valid duration", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            String name = etTimerName.getText().toString().trim();
+            if (name.isEmpty()) name = "Timer";
+
+            boolean lockScreen = swShowOnLockScreen.isChecked();
+
+            TimerModel newTimer = new TimerModel(System.currentTimeMillis(), name, totalSecs, lockScreen);
+            presetTimerList.add(newTimer);
+            StorageHelper.savePresetTimers(this, presetTimerList);
+            presetTimerAdapter.updateData(presetTimerList);
+
+            // Populate pickers with new timer
+            npTimerHour.setValue(h);
+            npTimerMinute.setValue(m);
+            npTimerSecond.setValue(s);
+
+            Toast.makeText(this, "Timer '" + name + "' added", Toast.LENGTH_SHORT).show();
+            dialog.dismiss();
+        });
+
+        dialog.show();
+    }
+
+    private interface OnHolidayUpdatedListener {
+        void onUpdated();
+    }
+
+    private void showSettingsDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_NoActionBar_Fullscreen);
+        View view = LayoutInflater.from(this).inflate(R.layout.dialog_settings, null);
+        builder.setView(view);
+
+        AlertDialog dialog = builder.create();
+
+        ImageButton btnBack = view.findViewById(R.id.btnBackSettings);
+        androidx.appcompat.widget.SwitchCompat swTimerSounds = view.findViewById(R.id.swTimerRunningSounds);
+        androidx.appcompat.widget.SwitchCompat swStopwatchSounds = view.findViewById(R.id.swStopwatchRunningSounds);
+
+        TextView tvHolidayCountry = view.findViewById(R.id.tvHolidayCountrySubtext);
+        if (tvHolidayCountry != null) {
+            tvHolidayCountry.setText(StorageHelper.getHolidayCountry(this));
+        }
+
+        swTimerSounds.setChecked(StorageHelper.isTimerSoundEnabled(this));
+        swStopwatchSounds.setChecked(StorageHelper.isStopwatchSoundEnabled(this));
+
+        swTimerSounds.setOnCheckedChangeListener((bv, isChecked) -> {
+            StorageHelper.setTimerSoundEnabled(this, isChecked);
+        });
+
+        swStopwatchSounds.setOnCheckedChangeListener((bv, isChecked) -> {
+            StorageHelper.setStopwatchSoundEnabled(this, isChecked);
+        });
+
+        View cardDualClock = view.findViewById(R.id.cardDualClock);
+        if (cardDualClock != null) {
+            cardDualClock.setOnClickListener(v -> showDateTimeSettingsDialog());
+        }
+
+        View cardHolidays = view.findViewById(R.id.cardHolidays);
+        if (cardHolidays != null) {
+            cardHolidays.setOnClickListener(v -> showHolidaysSettingsDialog(() -> {
+                if (tvHolidayCountry != null) {
+                    tvHolidayCountry.setText(StorageHelper.getHolidayCountry(this));
+                }
+            }));
+        }
+
+        btnBack.setOnClickListener(v -> dialog.dismiss());
+
+        dialog.show();
+    }
+
+    private void showDateTimeSettingsDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_NoActionBar_Fullscreen);
+        View view = LayoutInflater.from(this).inflate(R.layout.dialog_date_time_settings, null);
+        builder.setView(view);
+
+        AlertDialog dialog = builder.create();
+
+        ImageButton btnBack = view.findViewById(R.id.btnBackDateTime);
+        androidx.appcompat.widget.SwitchCompat swAutoSetTime = view.findViewById(R.id.swAutoSetTime);
+        androidx.appcompat.widget.SwitchCompat swUse24HourFormat = view.findViewById(R.id.swUse24HourFormat);
+        androidx.appcompat.widget.SwitchCompat swAutoTimeZone = view.findViewById(R.id.swAutoTimeZone);
+        androidx.appcompat.widget.SwitchCompat swSystemDualClock = view.findViewById(R.id.swSystemDualClock);
+
+        TextView tvDateValue = view.findViewById(R.id.tvDateValue);
+        TextView tvTimeValue = view.findViewById(R.id.tvTimeValue);
+        TextView tvTimeZoneValue = view.findViewById(R.id.tvTimeZoneValue);
+        TextView tvHomeCityValue = view.findViewById(R.id.tvHomeCityValue);
+
+        swAutoSetTime.setChecked(StorageHelper.isAutoSetTime(this));
+        swUse24HourFormat.setChecked(StorageHelper.isUse24HourFormat(this));
+        swAutoTimeZone.setChecked(StorageHelper.isAutoTimeZone(this));
+        swSystemDualClock.setChecked(StorageHelper.isSystemDualClock(this));
+
+        Date now = new Date();
+        tvDateValue.setText(new SimpleDateFormat("MMMM dd, yyyy", Locale.US).format(now));
+        tvTimeValue.setText(new SimpleDateFormat("h:mm a", Locale.US).format(now));
+        tvTimeZoneValue.setText("GMT" + new SimpleDateFormat("Z", Locale.US).format(now) + " " + TimeZone.getDefault().getDisplayName());
+        tvHomeCityValue.setText(StorageHelper.getHomeCity(this));
+
+        swAutoSetTime.setOnCheckedChangeListener((bv, isChecked) -> StorageHelper.setAutoSetTime(this, isChecked));
+        swUse24HourFormat.setOnCheckedChangeListener((bv, isChecked) -> StorageHelper.setUse24HourFormat(this, isChecked));
+        swAutoTimeZone.setOnCheckedChangeListener((bv, isChecked) -> StorageHelper.setAutoTimeZone(this, isChecked));
+        swSystemDualClock.setOnCheckedChangeListener((bv, isChecked) -> StorageHelper.setSystemDualClock(this, isChecked));
+
+        btnBack.setOnClickListener(v -> dialog.dismiss());
+
+        dialog.show();
+    }
+
+    private void showHolidaysSettingsDialog(OnHolidayUpdatedListener listener) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_NoActionBar_Fullscreen);
+        View view = LayoutInflater.from(this).inflate(R.layout.dialog_holidays_settings, null);
+        builder.setView(view);
+
+        AlertDialog dialog = builder.create();
+
+        ImageButton btnBack = view.findViewById(R.id.btnBackHolidays);
+        RecyclerView rvCountries = view.findViewById(R.id.rvCountryHolidays);
+        EditText etSearch = view.findViewById(R.id.etSearchCountry);
+
+        List<String> countries = getCountryList();
+        String current = StorageHelper.getHolidayCountry(this);
+
+        HolidayCountryAdapter adapter = new HolidayCountryAdapter(countries, current, selectedCountry -> {
+            StorageHelper.setHolidayCountry(this, selectedCountry);
+            Toast.makeText(this, "Holiday Region set to " + selectedCountry, Toast.LENGTH_SHORT).show();
+            if (listener != null) listener.onUpdated();
+            dialog.dismiss();
+        });
+
+        rvCountries.setLayoutManager(new LinearLayoutManager(this));
+        rvCountries.setAdapter(adapter);
+
+        etSearch.addTextChangedListener(new android.text.TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                adapter.filter(s.toString());
+            }
+
+            @Override
+            public void afterTextChanged(android.text.Editable s) {}
+        });
+
+        btnBack.setOnClickListener(v -> dialog.dismiss());
+
+        dialog.show();
+    }
+
+    private List<String> getCountryList() {
+        List<String> list = new ArrayList<>();
+        list.add("Afghanistan");
+        list.add("Albania");
+        list.add("Algeria");
+        list.add("American Samoa");
+        list.add("Andorra");
+        list.add("Angola");
+        list.add("Anguilla");
+        list.add("Antigua & Barbuda");
+        list.add("Argentina");
+        list.add("Armenia");
+        list.add("Aruba");
+        list.add("Australia");
+        list.add("Austria");
+        list.add("Azerbaijan");
+        list.add("Bahamas");
+        list.add("Bahrain");
+        list.add("Bangladesh");
+        list.add("Barbados");
+        list.add("Belarus");
+        list.add("Belgium");
+        list.add("Belize");
+        list.add("India");
+        list.add("United Kingdom");
+        list.add("United States");
+        java.util.Collections.sort(list);
+        return list;
     }
 
     private void updateTimerCountdownDisplay() {

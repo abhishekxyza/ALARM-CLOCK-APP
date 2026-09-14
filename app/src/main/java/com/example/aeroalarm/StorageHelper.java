@@ -19,6 +19,15 @@ public class StorageHelper {
     private static final String KEY_WORLD_CITIES = "world_cities";
     private static final String KEY_WALLPAPER_TYPE = "wallpaper_type";
     private static final String KEY_WALLPAPER_URI = "wallpaper_uri";
+    private static final String KEY_PRESET_TIMERS = "preset_timers";
+    private static final String KEY_TIMER_SOUND_ENABLED = "timer_sound_enabled";
+    private static final String KEY_STOPWATCH_SOUND_ENABLED = "stopwatch_sound_enabled";
+    private static final String KEY_AUTO_SET_TIME = "auto_set_time";
+    private static final String KEY_USE_24_HOUR = "use_24_hour";
+    private static final String KEY_AUTO_TIME_ZONE = "auto_time_zone";
+    private static final String KEY_SYSTEM_DUAL_CLOCK = "system_dual_clock";
+    private static final String KEY_HOME_CITY = "home_city";
+    private static final String KEY_HOLIDAY_COUNTRY = "holiday_country";
 
     public static void saveAlarms(Context context, List<AlarmModel> alarms) {
         SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
@@ -103,5 +112,93 @@ public class StorageHelper {
 
     public static String getWallpaperUri(Context context) {
         return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).getString(KEY_WALLPAPER_URI, null);
+    }
+
+    public static void savePresetTimers(Context context, List<TimerModel> timers) {
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        Gson gson = new Gson();
+        String json = gson.toJson(timers);
+        prefs.edit().putString(KEY_PRESET_TIMERS, json).apply();
+    }
+
+    public static List<TimerModel> getPresetTimers(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        Gson gson = new Gson();
+        String json = prefs.getString(KEY_PRESET_TIMERS, null);
+        Type type = new TypeToken<ArrayList<TimerModel>>() {}.getType();
+        List<TimerModel> timers = gson.fromJson(json, type);
+        if (timers == null) {
+            timers = new ArrayList<>();
+            // Default preset timers matching Image 1
+            timers.add(new TimerModel(1, "Meeting", 1200, true)); // 00:20:00
+            timers.add(new TimerModel(2, "Sleep", 600, true));    // 00:10:00
+            timers.add(new TimerModel(3, "Exercise", 900, true)); // 00:15:00
+            savePresetTimers(context, timers);
+        }
+        return timers;
+    }
+
+    public static void setTimerSoundEnabled(Context context, boolean enabled) {
+        context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).edit().putBoolean(KEY_TIMER_SOUND_ENABLED, enabled).apply();
+    }
+
+    public static boolean isTimerSoundEnabled(Context context) {
+        return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).getBoolean(KEY_TIMER_SOUND_ENABLED, true);
+    }
+
+    public static void setStopwatchSoundEnabled(Context context, boolean enabled) {
+        context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).edit().putBoolean(KEY_STOPWATCH_SOUND_ENABLED, enabled).apply();
+    }
+
+    public static boolean isStopwatchSoundEnabled(Context context) {
+        return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).getBoolean(KEY_STOPWATCH_SOUND_ENABLED, true);
+    }
+
+    public static void setAutoSetTime(Context context, boolean enabled) {
+        context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).edit().putBoolean(KEY_AUTO_SET_TIME, enabled).apply();
+    }
+
+    public static boolean isAutoSetTime(Context context) {
+        return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).getBoolean(KEY_AUTO_SET_TIME, true);
+    }
+
+    public static void setUse24HourFormat(Context context, boolean enabled) {
+        context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).edit().putBoolean(KEY_USE_24_HOUR, enabled).apply();
+    }
+
+    public static boolean isUse24HourFormat(Context context) {
+        return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).getBoolean(KEY_USE_24_HOUR, false);
+    }
+
+    public static void setAutoTimeZone(Context context, boolean enabled) {
+        context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).edit().putBoolean(KEY_AUTO_TIME_ZONE, enabled).apply();
+    }
+
+    public static boolean isAutoTimeZone(Context context) {
+        return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).getBoolean(KEY_AUTO_TIME_ZONE, true);
+    }
+
+    public static void setSystemDualClock(Context context, boolean enabled) {
+        context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).edit().putBoolean(KEY_SYSTEM_DUAL_CLOCK, enabled).apply();
+    }
+
+    public static boolean isSystemDualClock(Context context) {
+        return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).getBoolean(KEY_SYSTEM_DUAL_CLOCK, true);
+    }
+
+    public static void setHomeCity(Context context, String city) {
+        context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).edit().putString(KEY_HOME_CITY, city).apply();
+    }
+
+    public static String getHomeCity(Context context) {
+        return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).getString(KEY_HOME_CITY, "Predicted Home City (Kandivali West)");
+    }
+
+    public static void setHolidayCountry(Context context, String country) {
+        context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).edit().putString(KEY_HOLIDAY_COUNTRY, country).apply();
+    }
+
+    public static String getHolidayCountry(Context context) {
+        return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).getString(KEY_HOLIDAY_COUNTRY, "India");
     }
 }

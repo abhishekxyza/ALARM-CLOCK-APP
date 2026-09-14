@@ -207,7 +207,6 @@
             android:layout_height="match_parent"
             android:orientation="vertical"
             android:gravity="center_horizontal"
-            android:paddingHorizontal="24dp"
             android:visibility="gone">
 
             <!-- Input Pickers / Countdown Display -->
@@ -217,7 +216,8 @@
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center"
-                android:layout_marginTop="24dp">
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="16dp">
 
                 <NumberPicker
                     android:id="@+id/npTimerHour"
@@ -266,70 +266,59 @@
                 android:layout_height="wrap_content"
                 android:text="00:00:00"
                 android:textColor="#FF9500"
-                android:textSize="64sp"
+                android:textSize="56sp"
                 android:fontFamily="sans-serif-light"
-                android:layout_marginTop="36dp"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="24dp"
                 android:visibility="gone" />
 
-            <!-- Preset Quick Add Buttons -->
+            <!-- Preset Timers List (Meeting, Sleep, Exercise) -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvPresetTimers"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:clipToPadding="false" />
+
+            <!-- Bottom Circular Action Controls Bar (Image 1) -->
             <LinearLayout
-                android:id="@+id/timerPresetsLayout"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_marginTop="32dp">
+                android:gravity="center"
+                android:layout_marginVertical="16dp">
 
-                <Button
-                    android:id="@+id/btnTimer1m"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="+1m"
-                    android:textColor="#FFFFFF"
-                    android:backgroundTint="#2c2c2e"
-                    android:layout_marginEnd="8dp" />
+                <!-- Left: Cancel / Clear (X) -->
+                <ImageButton
+                    android:id="@+id/btnTimerCancel"
+                    android:layout_width="60dp"
+                    android:layout_height="60dp"
+                    android:background="@drawable/bg_circle_dark"
+                    android:src="@drawable/ic_close"
+                    app:tint="#9E9E9E"
+                    android:contentDescription="Cancel"
+                    android:layout_marginEnd="36dp" />
 
-                <Button
-                    android:id="@+id/btnTimer5m"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="+5m"
-                    android:textColor="#FFFFFF"
-                    android:backgroundTint="#2c2c2e"
-                    android:layout_marginEnd="8dp" />
+                <!-- Center: Play / Pause (▶) -->
+                <ImageButton
+                    android:id="@+id/btnTimerPlayPause"
+                    android:layout_width="72dp"
+                    android:layout_height="72dp"
+                    android:background="@drawable/bg_circle_orange"
+                    android:src="@drawable/ic_play_arrow"
+                    app:tint="#000000"
+                    android:contentDescription="Start/Pause" />
 
-                <Button
-                    android:id="@+id/btnTimer10m"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="+10m"
-                    android:textColor="#FFFFFF"
-                    android:backgroundTint="#2c2c2e" />
-            </LinearLayout>
-
-            <!-- Timer Action Buttons -->
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginTop="40dp"
-                android:gravity="center">
-
-                <Button
-                    android:id="@+id/btnTimerReset"
-                    android:layout_width="100dp"
-                    android:layout_height="56dp"
-                    android:text="Reset"
-                    android:textColor="#FFFFFF"
-                    android:backgroundTint="#2c2c2e"
-                    android:layout_marginEnd="20dp" />
-
-                <Button
-                    android:id="@+id/btnTimerStartPause"
-                    android:layout_width="120dp"
-                    android:layout_height="56dp"
-                    android:text="Start"
-                    android:textColor="#FFFFFF"
-                    android:backgroundTint="#FF9500" />
+                <!-- Right: Bell / Sound (🔔) -->
+                <ImageButton
+                    android:id="@+id/btnTimerSound"
+                    android:layout_width="60dp"
+                    android:layout_height="60dp"
+                    android:background="@drawable/bg_circle_dark"
+                    android:src="@drawable/ic_bell"
+                    app:tint="#9E9E9E"
+                    android:contentDescription="Sound"
+                    android:layout_marginStart="36dp" />
             </LinearLayout>
         </LinearLayout>
 
