@@ -28,6 +28,8 @@ public class StorageHelper {
     private static final String KEY_SYSTEM_DUAL_CLOCK = "system_dual_clock";
     private static final String KEY_HOME_CITY = "home_city";
     private static final String KEY_HOLIDAY_COUNTRY = "holiday_country";
+    private static final String KEY_TIMER_TONE = "timer_tone";
+    private static final String KEY_CLOCK_DISPLAY_MODE = "clock_display_mode";
 
     public static void saveAlarms(Context context, List<AlarmModel> alarms) {
         SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
@@ -200,5 +202,25 @@ public class StorageHelper {
 
     public static String getHolidayCountry(Context context) {
         return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).getString(KEY_HOLIDAY_COUNTRY, "India");
+    }
+
+    public static void setTimerTone(Context context, String tone) {
+        context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).edit().putString(KEY_TIMER_TONE, tone).apply();
+    }
+
+    public static String getTimerTone(Context context) {
+        return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).getString(KEY_TIMER_TONE, "Classic Beep");
+    }
+
+    public static void setClockDisplayMode(Context context, String mode) {
+        context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).edit().putString(KEY_CLOCK_DISPLAY_MODE, mode).apply();
+    }
+
+    public static String getClockDisplayMode(Context context) {
+        return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).getString(KEY_CLOCK_DISPLAY_MODE, "analog");
+    }
+
+    public static String getGeminiApiKey(Context context) {
+        return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).getString("gemini_api_key", "YOUR_GEMINI_API_KEY_HERE");
     }
 }

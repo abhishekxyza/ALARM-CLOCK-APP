@@ -57,4 +57,10 @@ dependencies {
     val roomVersion = "2.6.1"
     implementation("androidx.room:room-runtime:$roomVersion")
     annotationProcessor("androidx.room:room-compiler:$roomVersion")
+
+    // Google GenAI SDK (Gemini)
+    implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation("com.google.guava:guava:32.1.3-android")
+    implementation("com.google.guava:listenablefuture:999.0-empty-to-avoid-conflict-with-guava")
 }

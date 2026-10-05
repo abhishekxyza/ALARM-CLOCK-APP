@@ -3,6 +3,7 @@ package com.example.aeroalarm;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -15,6 +16,7 @@ public class PresetTimerAdapter extends RecyclerView.Adapter<PresetTimerAdapter.
 
     public interface OnPresetTimerClickListener {
         void onPresetTimerClick(TimerModel timer);
+        void onPresetTimerEdit(TimerModel timer);
     }
 
     public PresetTimerAdapter(List<TimerModel> timers, OnPresetTimerClickListener listener) {
@@ -44,6 +46,15 @@ public class PresetTimerAdapter extends RecyclerView.Adapter<PresetTimerAdapter.
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) listener.onPresetTimerClick(timer);
         });
+
+        holder.btnEdit.setOnClickListener(v -> {
+            if (listener != null) listener.onPresetTimerEdit(timer);
+        });
+
+        holder.itemView.setOnLongClickListener(v -> {
+            if (listener != null) listener.onPresetTimerEdit(timer);
+            return true;
+        });
     }
 
     @Override
@@ -53,11 +64,13 @@ public class PresetTimerAdapter extends RecyclerView.Adapter<PresetTimerAdapter.
 
     static class PresetViewHolder extends RecyclerView.ViewHolder {
         TextView tvName, tvDuration;
+        ImageButton btnEdit;
 
         public PresetViewHolder(@NonNull View itemView) {
             super(itemView);
             tvName = itemView.findViewById(R.id.tvPresetTimerName);
             tvDuration = itemView.findViewById(R.id.tvPresetTimerDuration);
+            btnEdit = itemView.findViewById(R.id.btnEditPresetTimer);
         }
     }
 }

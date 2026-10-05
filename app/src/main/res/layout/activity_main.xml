@@ -45,7 +45,7 @@
             android:textSize="32sp"
             android:fontFamily="sans-serif-medium" />
 
-        <!-- Top Right Pill Menu (+ and ⋮) -->
+        <!-- Top Right Pill Menu (+, ✨, and ⋮) -->
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -63,6 +63,21 @@
                 android:src="@drawable/ic_plus"
                 app:tint="#FFFFFF"
                 android:contentDescription="Add" />
+
+            <View
+                android:layout_width="1dp"
+                android:layout_height="20dp"
+                android:background="#2c2c2e"
+                android:layout_marginHorizontal="2dp" />
+
+            <ImageButton
+                android:id="@+id/btnHeaderAi"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_sparkles"
+                app:tint="#FF9500"
+                android:contentDescription="AI Assistant" />
 
             <View
                 android:layout_width="1dp"
@@ -133,55 +148,44 @@
             android:orientation="vertical"
             android:visibility="gone">
 
-            <!-- Local Time Card Header -->
+            <!-- Interactive Clock Face Container (Taps toggle Analog <-> Digital) -->
             <LinearLayout
+                android:id="@+id/clockContainerFrame"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:paddingHorizontal="24dp"
-                android:paddingVertical="12dp">
+                android:gravity="center"
+                android:paddingVertical="16dp"
+                android:clickable="true"
+                android:focusable="true">
 
+                <!-- Analog Clock View (Image 1) -->
+                <com.example.aeroalarm.AnalogClockView
+                    android:id="@+id/analogClockView"
+                    android:layout_width="250dp"
+                    android:layout_height="250dp"
+                    android:layout_gravity="center"
+                    android:visibility="visible" />
+
+                <!-- Digital Clock View (Image 2) -->
                 <TextView
-                    android:id="@+id/tvLocalCityName"
+                    android:id="@+id/tvDigitalClock"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Local Time"
-                    android:textColor="#FF9500"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
+                    android:text="00:00:27"
+                    android:textColor="#FFFFFF"
+                    android:textSize="58sp"
+                    android:fontFamily="sans-serif-light"
+                    android:visibility="gone" />
 
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="bottom">
-
-                    <TextView
-                        android:id="@+id/tvLocalTime"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="02:12:00"
-                        android:textColor="#FFFFFF"
-                        android:textSize="48sp"
-                        android:fontFamily="sans-serif-light" />
-
-                    <TextView
-                        android:id="@+id/tvLocalAmPm"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp"
-                        android:text="AM"
-                        android:textColor="#FF9500"
-                        android:textSize="18sp"
-                        android:textStyle="bold" />
-                </LinearLayout>
-
+                <!-- Date & Timezone Subtext -->
                 <TextView
-                    android:id="@+id/tvLocalDate"
+                    android:id="@+id/tvClockSubtext"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Sunday, August 30"
-                    android:textColor="#757575"
+                    android:layout_marginTop="12dp"
+                    android:text="Sat, Sep 26  India Standard Time"
+                    android:textColor="#9E9E9E"
                     android:textSize="14sp" />
             </LinearLayout>
 

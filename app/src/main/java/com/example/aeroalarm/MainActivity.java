@@ -13,6 +13,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.speech.RecognizerIntent;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
@@ -56,6 +57,7 @@ import com.google.mlkit.vision.common.InputImage;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -86,7 +88,9 @@ public class MainActivity extends AppCompatActivity {
     private TextView tvDialogSelectedMusic;
 
     // World Clock Tab
-    private TextView tvLocalTime, tvLocalAmPm, tvLocalDate, tvLocalCityName;
+    private AnalogClockView analogClockView;
+    private TextView tvDigitalClock, tvClockSubtext;
+    private View clockContainerFrame;
     private RecyclerView rvWorldClock;
     private WorldClockAdapter worldClockAdapter;
     private List<WorldCityModel> worldCityList;
@@ -159,6 +163,24 @@ public class MainActivity extends AppCompatActivity {
             isGranted -> {
                 if (!isGranted) {
                     Toast.makeText(this, "Notifications are required for alarms", Toast.LENGTH_LONG).show();
+                }
+            }
+    );
+
+    private EditText activeAiPromptEditText = null;
+
+    private final ActivityResultLauncher<Intent> voiceRecognizerLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+                    ArrayList<String> matches = result.getData().getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+                    if (matches != null && !matches.isEmpty()) {
+                        String spokenText = matches.get(0);
+                        if (activeAiPromptEditText != null) {
+                            activeAiPromptEditText.setText(spokenText);
+                            Toast.makeText(this, "Heard: " + spokenText, Toast.LENGTH_SHORT).show();
+                        }
+                    }
                 }
             }
     );
@@ -241,10 +263,10 @@ public class MainActivity extends AppCompatActivity {
         emptyState = findViewById(R.id.emptyState);
 
         // World Clock
-        tvLocalCityName = findViewById(R.id.tvLocalCityName);
-        tvLocalTime = findViewById(R.id.tvLocalTime);
-        tvLocalAmPm = findViewById(R.id.tvLocalAmPm);
-        tvLocalDate = findViewById(R.id.tvLocalDate);
+        analogClockView = findViewById(R.id.analogClockView);
+        tvDigitalClock = findViewById(R.id.tvDigitalClock);
+        tvClockSubtext = findViewById(R.id.tvClockSubtext);
+        clockContainerFrame = findViewById(R.id.clockContainerFrame);
         rvWorldClock = findViewById(R.id.rvWorldClock);
 
         // Timer
@@ -291,6 +313,11 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        ImageButton btnHeaderAi = findViewById(R.id.btnHeaderAi);
+        if (btnHeaderAi != null) {
+            btnHeaderAi.setOnClickListener(v -> showAiAssistantDialog());
+        }
+
         btnMoreTop.setOnClickListener(v -> showPopupMenu(v));
     }
 
@@ -299,6 +326,7 @@ public class MainActivity extends AppCompatActivity {
         popup.getMenu().add("🎨 Anime Oshi Settings");
         popup.getMenu().add("📷 Barcode Task Settings");
         popup.getMenu().add("🖼️ Wallpaper Settings");
+        popup.getMenu().add("✨ Gemini AI Assistant");
         popup.getMenu().add("⚙️ Settings");
         popup.getMenu().add("📊 Sleep Stats");
 
@@ -316,6 +344,9 @@ public class MainActivity extends AppCompatActivity {
                 return true;
             } else if (title.contains("Wallpaper")) {
                 showWallpaperSettingsDialog();
+                return true;
+            } else if (title.contains("Gemini AI")) {
+                showAiAssistantDialog();
                 return true;
             } else if (title.contains("Settings")) {
                 showSettingsDialog();
@@ -434,6 +465,11 @@ public class MainActivity extends AppCompatActivity {
 
     // ================= WORLD CLOCK TAB =================
     private void setupWorldClockTab() {
+        if (clockContainerFrame != null) {
+            clockContainerFrame.setOnClickListener(v -> toggleClockDisplayMode());
+        }
+        updateClockDisplayMode();
+
         worldCityList = StorageHelper.getWorldCities(this);
         worldClockAdapter = new WorldClockAdapter(worldCityList, new WorldClockAdapter.OnCityClickListener() {
             @Override
@@ -451,18 +487,42 @@ public class MainActivity extends AppCompatActivity {
         rvWorldClock.setAdapter(worldClockAdapter);
     }
 
+    private void toggleClockDisplayMode() {
+        String current = StorageHelper.getClockDisplayMode(this);
+        String next = "analog".equalsIgnoreCase(current) ? "digital" : "analog";
+        StorageHelper.setClockDisplayMode(this, next);
+        updateClockDisplayMode();
+    }
+
+    private void updateClockDisplayMode() {
+        String mode = StorageHelper.getClockDisplayMode(this);
+        if ("digital".equalsIgnoreCase(mode)) {
+            if (analogClockView != null) analogClockView.setVisibility(View.GONE);
+            if (tvDigitalClock != null) tvDigitalClock.setVisibility(View.VISIBLE);
+        } else {
+            if (analogClockView != null) analogClockView.setVisibility(View.VISIBLE);
+            if (tvDigitalClock != null) tvDigitalClock.setVisibility(View.GONE);
+        }
+    }
+
     private void updateWorldClockDisplay() {
         Date now = new Date();
-        SimpleDateFormat timeFormat = new SimpleDateFormat("hh:mm:ss", Locale.US);
-        SimpleDateFormat ampmFormat = new SimpleDateFormat("a", Locale.US);
-        SimpleDateFormat dateFormat = new SimpleDateFormat("EEEE, MMMM dd", Locale.US);
+        boolean use24h = StorageHelper.isUse24HourFormat(this);
 
-        tvLocalTime.setText(timeFormat.format(now));
-        tvLocalAmPm.setText(ampmFormat.format(now));
-        tvLocalDate.setText(dateFormat.format(now));
+        if (analogClockView != null) {
+            analogClockView.updateTime();
+        }
 
-        String localCity = TimeZone.getDefault().getDisplayName(false, TimeZone.SHORT);
-        tvLocalCityName.setText("Local Time (" + localCity + ")");
+        if (tvDigitalClock != null) {
+            SimpleDateFormat digFormat = use24h ? new SimpleDateFormat("HH:mm:ss", Locale.US) : new SimpleDateFormat("hh:mm:ss a", Locale.US);
+            tvDigitalClock.setText(digFormat.format(now));
+        }
+
+        if (tvClockSubtext != null) {
+            SimpleDateFormat subFormat = new SimpleDateFormat("EEE, MMM dd", Locale.US);
+            String tzName = TimeZone.getDefault().getDisplayName(false, TimeZone.LONG);
+            tvClockSubtext.setText(subFormat.format(now) + "  " + tzName);
+        }
 
         if (worldClockAdapter != null) {
             worldClockAdapter.notifyDataSetChanged();
@@ -552,15 +612,27 @@ public class MainActivity extends AppCompatActivity {
 
         // Preset Timers RecyclerView
         presetTimerList = StorageHelper.getPresetTimers(this);
-        presetTimerAdapter = new PresetTimerAdapter(presetTimerList, timer -> {
-            long secs = timer.getDurationSeconds();
-            int h = (int) (secs / 3600);
-            int m = (int) ((secs % 3600) / 60);
-            int s = (int) (secs % 60);
-            npTimerHour.setValue(h);
-            npTimerMinute.setValue(m);
-            npTimerSecond.setValue(s);
-            Toast.makeText(this, "Loaded " + timer.getName(), Toast.LENGTH_SHORT).show();
+        presetTimerAdapter = new PresetTimerAdapter(presetTimerList, new PresetTimerAdapter.OnPresetTimerClickListener() {
+            @Override
+            public void onPresetTimerClick(TimerModel timer) {
+                long secs = timer.getDurationSeconds();
+                int h = (int) (secs / 3600);
+                int m = (int) ((secs % 3600) / 60);
+                int s = (int) (secs % 60);
+                npTimerHour.setValue(h);
+                npTimerMinute.setValue(m);
+                npTimerSecond.setValue(s);
+
+                // Instantly start the timer countdown for this preset!
+                timerRemainingTimeMs = secs * 1000L;
+                timerTotalTimeMs = timerRemainingTimeMs;
+                startTimer();
+            }
+
+            @Override
+            public void onPresetTimerEdit(TimerModel timer) {
+                showEditPresetTimerDialog(timer);
+            }
         });
         rvPresetTimers.setLayoutManager(new LinearLayoutManager(this));
         rvPresetTimers.setAdapter(presetTimerAdapter);
@@ -576,9 +648,31 @@ public class MainActivity extends AppCompatActivity {
 
         btnTimerCancel.setOnClickListener(v -> resetTimer());
 
-        btnTimerSound.setOnClickListener(v -> {
-            Toast.makeText(this, "Timer Sound: Default Tone", Toast.LENGTH_SHORT).show();
-        });
+        btnTimerSound.setOnClickListener(v -> showTimerSoundPickerDialog());
+    }
+
+    private void showTimerSoundPickerDialog() {
+        String currentSound = StorageHelper.getTimerTone(this);
+        String[] sounds = {"Classic Beep", "Digital Retro", "Calm Chimes", "Sci-Fi Pulse", "System Alarm Ringtone"};
+        
+        int selectedIndex = 0;
+        for (int i = 0; i < sounds.length; i++) {
+            if (sounds[i].equalsIgnoreCase(currentSound)) {
+                selectedIndex = i;
+                break;
+            }
+        }
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert);
+        builder.setTitle("🔔 Select Timer Finished Sound")
+               .setSingleChoiceItems(sounds, selectedIndex, (dialog, which) -> {
+                   String choice = sounds[which];
+                   StorageHelper.setTimerTone(this, choice);
+                   Toast.makeText(this, "Timer sound set to " + choice, Toast.LENGTH_SHORT).show();
+                   dialog.dismiss();
+               })
+               .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss())
+               .show();
     }
 
     private void startTimer() {
@@ -630,6 +724,134 @@ public class MainActivity extends AppCompatActivity {
         tvTimerCountdown.setVisibility(View.GONE);
         timerInputLayout.setVisibility(View.VISIBLE);
         btnTimerPlayPause.setImageResource(R.drawable.ic_play_arrow);
+    }
+
+    private void onTimerFinished() {
+        resetTimer();
+        
+        if (!StorageHelper.isTimerSoundEnabled(this)) {
+            Toast.makeText(this, "⌛ Timer Finished!", Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        String soundChoice = StorageHelper.getTimerTone(this);
+        Uri soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+        if (soundUri == null) {
+            soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+        }
+
+        Ringtone r = null;
+        try {
+            r = RingtoneManager.getRingtone(getApplicationContext(), soundUri);
+            if (r != null) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    r.setLooping(true);
+                }
+                r.play();
+            }
+        } catch (Exception e) {
+            Log.e("MainActivity", "Error playing timer finish sound", e);
+        }
+
+        final Ringtone ringtone = r;
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert);
+        builder.setTitle("⌛ Timer Finished!")
+               .setMessage("Sound: " + soundChoice)
+               .setCancelable(false)
+               .setPositiveButton("Dismiss", (dialog, which) -> {
+                   if (ringtone != null && ringtone.isPlaying()) {
+                       ringtone.stop();
+                   }
+                   dialog.dismiss();
+               })
+               .show();
+    }
+
+    private void showEditPresetTimerDialog(TimerModel existingTimer) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert);
+        View view = LayoutInflater.from(this).inflate(R.layout.dialog_add_timer, null);
+        builder.setView(view);
+
+        AlertDialog dialog = builder.create();
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+
+        ImageButton btnClose = view.findViewById(R.id.btnCloseAddTimer);
+        NumberPicker npHour = view.findViewById(R.id.npAddTimerHour);
+        NumberPicker npMinute = view.findViewById(R.id.npAddTimerMinute);
+        NumberPicker npSecond = view.findViewById(R.id.npAddTimerSecond);
+
+        EditText etTimerName = view.findViewById(R.id.etTimerName);
+        androidx.appcompat.widget.SwitchCompat swShowOnLockScreen = view.findViewById(R.id.swShowOnLockScreen);
+        Button btnSave = view.findViewById(R.id.btnSaveAddTimer);
+        Button btnDelete = view.findViewById(R.id.btnDeleteAddTimer);
+
+        if (btnDelete != null) {
+            btnDelete.setVisibility(View.VISIBLE);
+            btnDelete.setOnClickListener(v -> {
+                presetTimerList.remove(existingTimer);
+                StorageHelper.savePresetTimers(this, presetTimerList);
+                presetTimerAdapter.updateData(presetTimerList);
+                Toast.makeText(this, "Timer '" + existingTimer.getName() + "' deleted", Toast.LENGTH_SHORT).show();
+                dialog.dismiss();
+            });
+        }
+
+        npHour.setMinValue(0);
+        npHour.setMaxValue(23);
+        npMinute.setMinValue(0);
+        npMinute.setMaxValue(59);
+        npSecond.setMinValue(0);
+        npSecond.setMaxValue(59);
+
+        NumberPicker.Formatter formatter = i -> String.format(Locale.US, "%02d", i);
+        npHour.setFormatter(formatter);
+        npMinute.setFormatter(formatter);
+        npSecond.setFormatter(formatter);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            npHour.setTextColor(Color.WHITE);
+            npMinute.setTextColor(Color.WHITE);
+            npSecond.setTextColor(Color.WHITE);
+        }
+
+        long secs = existingTimer.getDurationSeconds();
+        npHour.setValue((int) (secs / 3600));
+        npMinute.setValue((int) ((secs % 3600) / 60));
+        npSecond.setValue((int) (secs % 60));
+
+        etTimerName.setText(existingTimer.getName());
+        swShowOnLockScreen.setChecked(existingTimer.isShowOnLockScreen());
+
+        btnClose.setOnClickListener(v -> dialog.dismiss());
+
+        btnSave.setOnClickListener(v -> {
+            int h = npHour.getValue();
+            int m = npMinute.getValue();
+            int s = npSecond.getValue();
+            long totalSecs = (h * 3600L) + (m * 60L) + s;
+
+            if (totalSecs <= 0) {
+                Toast.makeText(this, "Set a valid duration", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            String name = etTimerName.getText().toString().trim();
+            if (name.isEmpty()) name = "Timer";
+
+            existingTimer.setName(name);
+            existingTimer.setDurationSeconds(totalSecs);
+            existingTimer.setShowOnLockScreen(swShowOnLockScreen.isChecked());
+
+            StorageHelper.savePresetTimers(this, presetTimerList);
+            presetTimerAdapter.updateData(presetTimerList);
+
+            Toast.makeText(this, "Timer '" + name + "' updated", Toast.LENGTH_SHORT).show();
+            dialog.dismiss();
+        });
+
+        dialog.show();
     }
 
     private void showAddTimerDialog() {
@@ -709,6 +931,128 @@ public class MainActivity extends AppCompatActivity {
         dialog.show();
     }
 
+    private void showAiAssistantDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert);
+        View view = LayoutInflater.from(this).inflate(R.layout.dialog_ai_assistant, null);
+        builder.setView(view);
+
+        AlertDialog dialog = builder.create();
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+
+        ImageButton btnClose = view.findViewById(R.id.btnCloseAiDialog);
+        EditText etPrompt = view.findViewById(R.id.etAiPrompt);
+        activeAiPromptEditText = etPrompt;
+        TextView tvStatus = view.findViewById(R.id.tvAiStatus);
+        Button btnSend = view.findViewById(R.id.btnSendAiPrompt);
+        ImageButton btnVoice = view.findViewById(R.id.btnVoiceInput);
+
+        btnClose.setOnClickListener(v -> dialog.dismiss());
+
+        btnVoice.setOnClickListener(v -> {
+            Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+            intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+            intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak your alarm command (e.g. 'Wake me up at 7:30 AM')...");
+            try {
+                voiceRecognizerLauncher.launch(intent);
+            } catch (Exception e) {
+                Toast.makeText(this, "Speech recognition not supported", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        btnSend.setOnClickListener(v -> {
+            String prompt = etPrompt.getText().toString().trim();
+            if (prompt.isEmpty()) {
+                Toast.makeText(this, "Please enter a command or use voice", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            tvStatus.setText("Thinking with Gemini...");
+            btnSend.setEnabled(false);
+
+            String apiKey = StorageHelper.getGeminiApiKey(this);
+            com.example.aeroalarm.ai.GeminiAlarmController controller = new com.example.aeroalarm.ai.GeminiAlarmController(apiKey);
+
+            controller.parseUserCommand(prompt, new com.example.aeroalarm.ai.GeminiAlarmController.AiCallback() {
+                @Override
+                public void onSuccess(com.example.aeroalarm.ai.AlarmAction action) {
+                    runOnUiThread(() -> {
+                        btnSend.setEnabled(true);
+                        switch (action.getActionType()) {
+                            case SET_ALARM:
+                                AlarmModel newAlarm = new AlarmModel();
+                                newAlarm.setId(System.currentTimeMillis());
+                                newAlarm.setHour(action.getHour());
+                                newAlarm.setMinute(action.getMinute());
+                                newAlarm.setSecond(action.getSecond());
+                                newAlarm.setAmpm(action.getAmpm());
+                                newAlarm.setLabel(action.getLabel());
+                                newAlarm.setDays(action.getRepeatDays() != null ? action.getRepeatDays() : new ArrayList<>());
+                                newAlarm.setActive(true);
+                                newAlarm.setTone("Classic Beep");
+
+                                alarmList.add(newAlarm);
+                                StorageHelper.saveAlarms(MainActivity.this, alarmList);
+                                if (alarmAdapter != null) alarmAdapter.notifyDataSetChanged();
+                                updateEmptyState();
+
+                                AlarmManagerHelper.scheduleAlarm(MainActivity.this, newAlarm);
+
+                                tvStatus.setText("Alarm Set Successfully!");
+                                Toast.makeText(MainActivity.this, "AI set alarm for " + action.getHour() + ":" + action.getMinute() + " " + action.getAmpm(), Toast.LENGTH_LONG).show();
+                                new Handler(Looper.getMainLooper()).postDelayed(dialog::dismiss, 1200);
+                                break;
+
+                            case SWITCH_TAB:
+                                String tab = action.getTargetTab();
+                                if ("world_clock".equalsIgnoreCase(tab)) switchTab(1);
+                                else if ("timer".equalsIgnoreCase(tab)) switchTab(2);
+                                else if ("stopwatch".equalsIgnoreCase(tab)) switchTab(3);
+                                else switchTab(0);
+
+                                tvStatus.setText("Switched to " + tab);
+                                Toast.makeText(MainActivity.this, "AI switched to " + tab, Toast.LENGTH_SHORT).show();
+                                new Handler(Looper.getMainLooper()).postDelayed(dialog::dismiss, 1000);
+                                break;
+
+                            case SET_WALLPAPER:
+                                String theme = action.getWallpaperTheme();
+                                StorageHelper.saveWallpaper(MainActivity.this, "preset_" + theme, null);
+                                applyMainWallpaper();
+
+                                tvStatus.setText("Wallpaper updated!");
+                                Toast.makeText(MainActivity.this, "AI set wallpaper to " + theme, Toast.LENGTH_SHORT).show();
+                                new Handler(Looper.getMainLooper()).postDelayed(dialog::dismiss, 1000);
+                                break;
+
+                            case GET_SLEEP_STATS:
+                                showSleepStatsDialog();
+                                dialog.dismiss();
+                                break;
+
+                            default:
+                                tvStatus.setText("Action executed: " + action.getActionType().name());
+                                Toast.makeText(MainActivity.this, "AI Action: " + action.getActionType().name(), Toast.LENGTH_LONG).show();
+                                break;
+                        }
+                    });
+                }
+
+                @Override
+                public void onError(Throwable throwable) {
+                    runOnUiThread(() -> {
+                        btnSend.setEnabled(true);
+                        tvStatus.setText("Error: " + throwable.getMessage());
+                        Toast.makeText(MainActivity.this, "AI Error: " + throwable.getMessage(), Toast.LENGTH_LONG).show();
+                    });
+                }
+            });
+        });
+
+        dialog.show();
+    }
+
     private interface OnHolidayUpdatedListener {
         void onUpdated();
     }
@@ -774,24 +1118,148 @@ public class MainActivity extends AppCompatActivity {
 
         TextView tvDateValue = view.findViewById(R.id.tvDateValue);
         TextView tvTimeValue = view.findViewById(R.id.tvTimeValue);
+        TextView tvFormatExample = view.findViewById(R.id.tvFormatExample);
         TextView tvTimeZoneValue = view.findViewById(R.id.tvTimeZoneValue);
         TextView tvHomeCityValue = view.findViewById(R.id.tvHomeCityValue);
 
-        swAutoSetTime.setChecked(StorageHelper.isAutoSetTime(this));
-        swUse24HourFormat.setChecked(StorageHelper.isUse24HourFormat(this));
-        swAutoTimeZone.setChecked(StorageHelper.isAutoTimeZone(this));
-        swSystemDualClock.setChecked(StorageHelper.isSystemDualClock(this));
+        View rowDate = view.findViewById(R.id.rowDate);
+        View rowTime = view.findViewById(R.id.rowTime);
+        View rowSelectTimeZone = view.findViewById(R.id.rowSelectTimeZone);
+        View rowHomeCity = view.findViewById(R.id.rowHomeCity);
+        View rowDisplayPosition = view.findViewById(R.id.rowDisplayPosition);
+
+        boolean autoTime = StorageHelper.isAutoSetTime(this);
+        boolean use24h = StorageHelper.isUse24HourFormat(this);
+        boolean autoTz = StorageHelper.isAutoTimeZone(this);
+        boolean dualClock = StorageHelper.isSystemDualClock(this);
+
+        swAutoSetTime.setChecked(autoTime);
+        swUse24HourFormat.setChecked(use24h);
+        swAutoTimeZone.setChecked(autoTz);
+        swSystemDualClock.setChecked(dualClock);
+
+        Runnable updateStates = () -> {
+            boolean aTime = swAutoSetTime.isChecked();
+            rowDate.setEnabled(!aTime);
+            rowDate.setAlpha(aTime ? 0.5f : 1.0f);
+            rowTime.setEnabled(!aTime);
+            rowTime.setAlpha(aTime ? 0.5f : 1.0f);
+
+            boolean aTz = swAutoTimeZone.isChecked();
+            rowSelectTimeZone.setEnabled(!aTz);
+            rowSelectTimeZone.setAlpha(aTz ? 0.5f : 1.0f);
+
+            boolean dClock = swSystemDualClock.isChecked();
+            rowHomeCity.setEnabled(dClock);
+            rowHomeCity.setAlpha(dClock ? 1.0f : 0.5f);
+            rowDisplayPosition.setEnabled(dClock);
+            rowDisplayPosition.setAlpha(dClock ? 1.0f : 0.5f);
+
+            tvFormatExample.setText(swUse24HourFormat.isChecked() ? "13:00" : "1:00 PM");
+        };
+
+        updateStates.run();
 
         Date now = new Date();
         tvDateValue.setText(new SimpleDateFormat("MMMM dd, yyyy", Locale.US).format(now));
-        tvTimeValue.setText(new SimpleDateFormat("h:mm a", Locale.US).format(now));
+        tvTimeValue.setText(use24h ? new SimpleDateFormat("HH:mm", Locale.US).format(now) : new SimpleDateFormat("h:mm a", Locale.US).format(now));
         tvTimeZoneValue.setText("GMT" + new SimpleDateFormat("Z", Locale.US).format(now) + " " + TimeZone.getDefault().getDisplayName());
         tvHomeCityValue.setText(StorageHelper.getHomeCity(this));
 
-        swAutoSetTime.setOnCheckedChangeListener((bv, isChecked) -> StorageHelper.setAutoSetTime(this, isChecked));
-        swUse24HourFormat.setOnCheckedChangeListener((bv, isChecked) -> StorageHelper.setUse24HourFormat(this, isChecked));
-        swAutoTimeZone.setOnCheckedChangeListener((bv, isChecked) -> StorageHelper.setAutoTimeZone(this, isChecked));
-        swSystemDualClock.setOnCheckedChangeListener((bv, isChecked) -> StorageHelper.setSystemDualClock(this, isChecked));
+        swAutoSetTime.setOnCheckedChangeListener((bv, isChecked) -> {
+            StorageHelper.setAutoSetTime(this, isChecked);
+            updateStates.run();
+        });
+
+        swUse24HourFormat.setOnCheckedChangeListener((bv, isChecked) -> {
+            StorageHelper.setUse24HourFormat(this, isChecked);
+            updateStates.run();
+            updateWorldClockDisplay();
+            if (alarmAdapter != null) alarmAdapter.notifyDataSetChanged();
+        });
+
+        swAutoTimeZone.setOnCheckedChangeListener((bv, isChecked) -> {
+            StorageHelper.setAutoTimeZone(this, isChecked);
+            updateStates.run();
+        });
+
+        swSystemDualClock.setOnCheckedChangeListener((bv, isChecked) -> {
+            StorageHelper.setSystemDualClock(this, isChecked);
+            updateStates.run();
+        });
+
+        rowDate.setOnClickListener(v -> {
+            if (swAutoSetTime.isChecked()) {
+                Toast.makeText(this, "Turn off Auto-Set Time to change date manually", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            Calendar c = Calendar.getInstance();
+            new android.app.DatePickerDialog(this, (view1, year, month, dayOfMonth) -> {
+                c.set(year, month, dayOfMonth);
+                tvDateValue.setText(new SimpleDateFormat("MMMM dd, yyyy", Locale.US).format(c.getTime()));
+                Toast.makeText(this, "Date updated", Toast.LENGTH_SHORT).show();
+            }, c.get(Calendar.YEAR), c.get(Calendar.MONTH), c.get(Calendar.DAY_OF_MONTH)).show();
+        });
+
+        rowTime.setOnClickListener(v -> {
+            if (swAutoSetTime.isChecked()) {
+                Toast.makeText(this, "Turn off Auto-Set Time to change time manually", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            Calendar c = Calendar.getInstance();
+            new android.app.TimePickerDialog(this, (view12, hourOfDay, minute) -> {
+                c.set(Calendar.HOUR_OF_DAY, hourOfDay);
+                c.set(Calendar.MINUTE, minute);
+                tvTimeValue.setText(new SimpleDateFormat(swUse24HourFormat.isChecked() ? "HH:mm" : "h:mm a", Locale.US).format(c.getTime()));
+                Toast.makeText(this, "Time updated", Toast.LENGTH_SHORT).show();
+            }, c.get(Calendar.HOUR_OF_DAY), c.get(Calendar.MINUTE), swUse24HourFormat.isChecked()).show();
+        });
+
+        rowSelectTimeZone.setOnClickListener(v -> {
+            if (swAutoTimeZone.isChecked()) {
+                Toast.makeText(this, "Turn off Automatic time zone to select manually", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            String[] zones = {"GMT+00:00 UTC", "GMT+05:30 India Standard Time", "GMT-05:00 Eastern Time", "GMT+09:00 Japan Standard Time", "GMT+01:00 Central European Time"};
+            AlertDialog.Builder b = new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert);
+            b.setTitle("Select Time Zone")
+             .setItems(zones, (d, which) -> {
+                 tvTimeZoneValue.setText(zones[which]);
+                 Toast.makeText(this, "Time zone set to " + zones[which], Toast.LENGTH_SHORT).show();
+             })
+             .show();
+        });
+
+        rowHomeCity.setOnClickListener(v -> {
+            if (!swSystemDualClock.isChecked()) {
+                Toast.makeText(this, "Turn on System Dual Clock first", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            String[] cities = {"Kandivali West", "Mumbai", "Tokyo", "London", "New York", "Paris", "Sydney"};
+            AlertDialog.Builder b = new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert);
+            b.setTitle("Select Home City")
+             .setItems(cities, (d, which) -> {
+                 String city = cities[which];
+                 StorageHelper.setHomeCity(this, city);
+                 tvHomeCityValue.setText(city);
+                 Toast.makeText(this, "Home City set to " + city, Toast.LENGTH_SHORT).show();
+             })
+             .show();
+        });
+
+        rowDisplayPosition.setOnClickListener(v -> {
+            if (!swSystemDualClock.isChecked()) {
+                Toast.makeText(this, "Turn on System Dual Clock first", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            String[] positions = {"Lock Screen and Clock Widget", "Lock Screen Only", "Clock Widget Only"};
+            AlertDialog.Builder b = new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert);
+            b.setTitle("Display Position of Dual Clocks")
+             .setItems(positions, (d, which) -> {
+                 Toast.makeText(this, "Position set to " + positions[which], Toast.LENGTH_SHORT).show();
+             })
+             .show();
+        });
 
         btnBack.setOnClickListener(v -> dialog.dismiss());
 
@@ -875,18 +1343,6 @@ public class MainActivity extends AppCompatActivity {
         long minutes = (timerRemainingTimeMs / (1000 * 60)) % 60;
         long hours = (timerRemainingTimeMs / (1000 * 60 * 60));
         tvTimerCountdown.setText(String.format(Locale.US, "%02d:%02d:%02d", hours, minutes, seconds));
-    }
-
-    private void onTimerFinished() {
-        resetTimer();
-        Toast.makeText(this, "Timer Finished!", Toast.LENGTH_LONG).show();
-        try {
-            Uri alert = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-            Ringtone r = RingtoneManager.getRingtone(getApplicationContext(), alert);
-            if (r != null) r.play();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 
     // ================= STOPWATCH TAB =================

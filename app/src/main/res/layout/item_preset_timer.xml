@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical">
@@ -30,6 +31,16 @@
             android:textColor="#E0E0E0"
             android:textSize="22sp"
             android:fontFamily="sans-serif-light" />
+
+        <ImageButton
+            android:id="@+id/btnEditPresetTimer"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="16dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_menu_edit"
+            app:tint="#9E9E9E"
+            android:contentDescription="Edit" />
 
     </LinearLayout>
 

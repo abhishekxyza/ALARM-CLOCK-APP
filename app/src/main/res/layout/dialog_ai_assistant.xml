@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="#1c1c1e"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:text="✨ Gemini AI Assistant"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <ImageButton
+            android:id="@+id/btnCloseAiDialog"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:background="@drawable/bg_circle_dark"
+            android:src="@drawable/ic_close"
+            app:tint="#FFFFFF"
+            android:contentDescription="Close" />
+    </RelativeLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Type natural language command (e.g. 'Wake me up tomorrow at 7:30 AM labeled Gym')"
+        android:textColor="#9E9E9E"
+        android:textSize="13sp"
+        android:layout_marginBottom="16dp" />
+
+    <EditText
+        android:id="@+id/etAiPrompt"
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:background="@drawable/bg_top_menu_pill"
+        android:hint="Type your request here..."
+        android:textColor="#FFFFFF"
+        android:textColorHint="#757575"
+        android:textSize="14sp"
+        android:gravity="top|start"
+        android:padding="16dp"
+        android:inputType="textMultiLine"
+        android:autofillHints="no" />
+
+    <TextView
+        android:id="@+id/tvAiStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textColor="#FF9500"
+        android:textSize="12sp"
+        android:layout_marginTop="8dp"
+        android:layout_gravity="center_horizontal" />
+
+    <Button
+        android:id="@+id/btnSendAiPrompt"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:text="Parse &amp; Execute"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:backgroundTint="#FF9500"
+        android:layout_marginTop="20dp" />
+
+    <!-- Voice Record Button -->
+    <ImageButton
+        android:id="@+id/btnVoiceInput"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="16dp"
+        android:background="@drawable/bg_circle_orange"
+        android:src="@drawable/ic_mic"
+        app:tint="#000000"
+        android:contentDescription="Voice Input" />
+
+</LinearLayout>
